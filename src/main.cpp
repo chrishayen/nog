@@ -1,3 +1,13 @@
+/**
+ * @file main.cpp
+ * @brief Entry point for the Nog compiler.
+ *
+ * Provides the main() function and CLI handling for the Nog compiler.
+ * Supports two modes:
+ *   - nog <source.n>     : Transpile to C++ and output to stdout
+ *   - nog test <path>    : Run tests on .n files, compiling and executing them
+ */
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -6,10 +16,15 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "codegen.hpp"
+#include "typechecker.hpp"
 
 using namespace std;
 namespace fs = filesystem;
 
+/**
+ * Reads the entire contents of a file into a string.
+ * Returns empty string and prints error if file cannot be opened.
+ */
 string read_file(const string& path) {
     ifstream file(path);
     if (!file) {
@@ -21,15 +36,37 @@ string read_file(const string& path) {
     return buffer.str();
 }
 
-string transpile(const string& source, bool test_mode) {
+/**
+ * Transpiles Nog source to C++ code.
+ * Runs lexer -> parser -> type checker -> code generator pipeline.
+ * Returns empty string and prints errors if type checking fails.
+ */
+string transpile(const string& source, const string& filename, bool test_mode) {
     Lexer lexer(source);
     auto tokens = lexer.tokenize();
     Parser parser(tokens);
     auto ast = parser.parse();
+
+    TypeChecker checker;
+
+    if (!checker.check(*ast, filename)) {
+        for (const auto& err : checker.get_errors()) {
+            cerr << err.filename << ":" << err.line << ": error: " << err.message << endl;
+        }
+
+        return "";
+    }
+
     CodeGen codegen;
     return codegen.generate(ast, test_mode);
 }
 
+/**
+ * Runs tests on all .n files in a directory (or a single file).
+ * Each test file is transpiled, compiled with g++, and executed.
+ * Test functions (test_*) use assert_eq for assertions.
+ * Returns 0 if all tests pass, 1 if any fail.
+ */
 int run_tests(const string& path) {
     vector<fs::path> test_files;
 
@@ -57,7 +94,14 @@ int run_tests(const string& path) {
         string source = read_file(test_file.string());
         if (source.empty()) continue;
 
-        string cpp_code = transpile(source, true);
+        string cpp_code = transpile(source, test_file.string(), true);
+
+        if (cpp_code.empty()) {
+            cout << "\033[31mFAIL\033[0m " << test_file.string() << " (type errors)" << endl;
+            total_failures++;
+            continue;
+        }
+
         string tmp_cpp = "/tmp/nog_test.cpp";
         string tmp_bin = "/tmp/nog_test";
 
@@ -86,6 +130,11 @@ int run_tests(const string& path) {
     return total_failures > 0 ? 1 : 0;
 }
 
+/**
+ * Main entry point. Usage:
+ *   nog <source.n>   - Transpile to C++ and print to stdout
+ *   nog test <path>  - Run tests in directory or single file
+ */
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         cerr << "Usage: nog <source.n>" << endl;
@@ -103,6 +152,12 @@ int main(int argc, char* argv[]) {
     string source = read_file(cmd);
     if (source.empty()) return 1;
 
-    cout << transpile(source, false);
+    string result = transpile(source, cmd, false);
+
+    if (result.empty()) {
+        return 1;
+    }
+
+    cout << result;
     return 0;
 }

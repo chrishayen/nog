@@ -1,3 +1,10 @@
+/**
+ * @file types.hpp
+ * @brief Nog-to-C++ type mapping.
+ *
+ * Maps Nog primitive types to their C++ equivalents.
+ */
+
 #pragma once
 #include <string>
 
@@ -5,6 +12,10 @@ using namespace std;
 
 namespace nog::runtime {
 
+/**
+ * Maps a Nog type name to its C++ equivalent.
+ * Returns the input unchanged if it's a user-defined type (struct).
+ */
 inline string map_type(const string& t) {
     if (t == "int") return "int";
     if (t == "str") return "std::string";

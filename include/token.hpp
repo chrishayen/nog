@@ -1,8 +1,22 @@
+/**
+ * @file token.hpp
+ * @brief Token definitions for the Nog lexer.
+ *
+ * Defines the TokenType enum representing all lexical tokens in the Nog language,
+ * and the Token struct that pairs a token type with its string value and source location.
+ */
+
 #pragma once
 #include <string>
 
 using namespace std;
 
+/**
+ * @brief All possible token types in the Nog language.
+ *
+ * Organized into categories: keywords, primitive types, literals,
+ * punctuation/operators, and comparison operators.
+ */
 enum class TokenType {
     // Keywords
     FN,
@@ -60,11 +74,17 @@ enum class TokenType {
     OPTIONAL,
     SEMICOLON,
 
-    EOF_TOKEN
+    EOF_TOKEN  ///< End of file marker
 };
 
+/**
+ * @brief A single token from the source code.
+ *
+ * Produced by the Lexer during tokenization. Contains the token type,
+ * the original string value from source, and the line number for error reporting.
+ */
 struct Token {
-    TokenType type;
-    string value;
-    int line = 1;
+    TokenType type;   ///< The category/type of this token
+    string value;     ///< The literal string value from source
+    int line = 1;     ///< Source line number (1-indexed)
 };

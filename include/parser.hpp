@@ -1,3 +1,12 @@
+/**
+ * @file parser.hpp
+ * @brief Recursive descent parser for the Nog language.
+ *
+ * Transforms a token stream into an Abstract Syntax Tree (AST). Handles
+ * all Nog constructs including functions, structs, methods, control flow,
+ * and expressions.
+ */
+
 #pragma once
 #include <vector>
 #include <memory>
@@ -6,37 +15,73 @@
 
 using namespace std;
 
+/**
+ * @brief Parses Nog tokens into an AST.
+ *
+ * Uses recursive descent parsing with separate methods for each grammar rule.
+ * Expression parsing uses precedence climbing for operators.
+ *
+ * Grammar overview:
+ *   program     -> (function | struct | method)*
+ *   function    -> "fn" IDENT "(" params ")" ("->" type)? "{" statements "}"
+ *   struct      -> IDENT "::" "struct" "{" fields "}"
+ *   method      -> IDENT "::" IDENT "(" params ")" ("->" type)? "{" statements "}"
+ *   statement   -> var_decl | assignment | return | if | while | call
+ *   expression  -> comparison
+ *   comparison  -> additive (("==" | "!=" | ...) additive)*
+ *   additive    -> primary (("+" | "-" | "*" | "/") primary)*
+ *   primary     -> literal | IDENT | call | struct_literal | "(" expression ")"
+ */
 class Parser {
 public:
+    /**
+     * @brief Constructs a parser for the given token stream.
+     * @param tokens Vector of tokens from the lexer
+     */
     explicit Parser(const vector<Token>& tokens);
+
+    /**
+     * @brief Parses all tokens into a complete Program AST.
+     * @return The parsed program containing all definitions
+     * @throws runtime_error on syntax errors
+     */
     unique_ptr<Program> parse();
 
 private:
-    vector<Token> tokens;
-    size_t pos = 0;
-    vector<string> struct_names;
+    vector<Token> tokens;          ///< Token stream to parse
+    size_t pos = 0;                ///< Current position in tokens
+    vector<string> struct_names;   ///< Known struct names for type resolution
 
-    Token current();
-    Token consume(TokenType type);
-    bool check(TokenType type);
-    bool is_type_token();
-    void advance();
+    // Token navigation
+    Token current();               ///< Returns current token
+    Token consume(TokenType type); ///< Consumes expected token or throws
+    bool check(TokenType type);    ///< Checks if current token matches
+    bool is_type_token();          ///< Checks if current is a type keyword
+    void advance();                ///< Moves to next token
 
-    unique_ptr<FunctionDef> parse_function();
-    unique_ptr<StructDef> parse_struct_def(const string& name);
-    unique_ptr<ASTNode> parse_statement();
-    unique_ptr<FunctionCall> parse_function_call();
-    unique_ptr<VariableDecl> parse_variable_decl();
-    unique_ptr<VariableDecl> parse_inferred_decl();
-    unique_ptr<ReturnStmt> parse_return();
-    unique_ptr<IfStmt> parse_if();
-    unique_ptr<WhileStmt> parse_while();
-    unique_ptr<ASTNode> parse_expression();
-    unique_ptr<ASTNode> parse_comparison();
-    unique_ptr<ASTNode> parse_additive();
-    unique_ptr<ASTNode> parse_primary();
-    unique_ptr<ASTNode> parse_postfix(unique_ptr<ASTNode> left);
-    unique_ptr<StructLiteral> parse_struct_literal(const string& name);
-    string token_to_type(TokenType type);
-    bool is_struct_type(const string& name);
+    // Definition parsing
+    unique_ptr<FunctionDef> parse_function();                              ///< Parses fn definition
+    unique_ptr<StructDef> parse_struct_def(const string& name);            ///< Parses struct definition
+    unique_ptr<MethodDef> parse_method_def(const string& struct_name, int line);  ///< Parses method definition
+
+    // Statement parsing
+    unique_ptr<ASTNode> parse_statement();         ///< Parses any statement
+    unique_ptr<FunctionCall> parse_function_call();   ///< Parses function call statement
+    unique_ptr<VariableDecl> parse_variable_decl();   ///< Parses typed variable declaration
+    unique_ptr<VariableDecl> parse_inferred_decl();   ///< Parses := inference declaration
+    unique_ptr<ReturnStmt> parse_return();            ///< Parses return statement
+    unique_ptr<IfStmt> parse_if();                    ///< Parses if/else statement
+    unique_ptr<WhileStmt> parse_while();              ///< Parses while loop
+
+    // Expression parsing (precedence climbing)
+    unique_ptr<ASTNode> parse_expression();        ///< Entry point for expressions
+    unique_ptr<ASTNode> parse_comparison();        ///< Handles comparison operators
+    unique_ptr<ASTNode> parse_additive();          ///< Handles +, -, *, /
+    unique_ptr<ASTNode> parse_primary();           ///< Handles literals, identifiers
+    unique_ptr<ASTNode> parse_postfix(unique_ptr<ASTNode> left);  ///< Handles . access/calls
+    unique_ptr<StructLiteral> parse_struct_literal(const string& name);  ///< Parses { field: value }
+
+    // Helpers
+    string token_to_type(TokenType type);          ///< Converts type token to string
+    bool is_struct_type(const string& name);       ///< Checks if name is a known struct
 };

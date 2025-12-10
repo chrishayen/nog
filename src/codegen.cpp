@@ -1,9 +1,22 @@
+/**
+ * @file codegen.cpp
+ * @brief C++ code generation for the Nog language.
+ *
+ * Transforms a type-checked AST into C++ source code. Uses the runtime
+ * helper functions (nog::runtime) to generate idiomatic C++ output.
+ */
+
 #include "codegen.hpp"
 #include "../runtime/runtime.hpp"
 
 using namespace std;
 namespace rt = nog::runtime;
 
+/**
+ * Emits C++ code for an expression AST node. Handles all expression types:
+ * literals, variable refs, binary expressions, function calls, method calls,
+ * field access, struct literals, etc.
+ */
 string CodeGen::emit(const ASTNode& node) {
     if (auto* lit = dynamic_cast<const StringLiteral*>(&node)) {
         return rt::string_literal(lit->value);
@@ -53,13 +66,47 @@ string CodeGen::emit(const ASTNode& node) {
         return rt::struct_literal(lit->struct_name, field_values);
     }
     if (auto* access = dynamic_cast<const FieldAccess*>(&node)) {
+        // Handle self.field -> this->field in methods
+        if (auto* ref = dynamic_cast<const VariableRef*>(access->object.get())) {
+            if (ref->name == "self") {
+                return "this->" + access->field_name;
+            }
+        }
+
         return rt::field_access(emit(*access->object), access->field_name);
     }
+
+    if (auto* call = dynamic_cast<const MethodCall*>(&node)) {
+        vector<string> args;
+
+        for (const auto& arg : call->args) {
+            args.push_back(emit(*arg));
+        }
+
+        return rt::method_call(emit(*call->object), call->method_name, args);
+    }
+
+    if (auto* fa = dynamic_cast<const FieldAssignment*>(&node)) {
+        // Handle self.field = value -> this->field = value in methods
+        if (auto* ref = dynamic_cast<const VariableRef*>(fa->object.get())) {
+            if (ref->name == "self") {
+                return "this->" + fa->field_name + " = " + emit(*fa->value);
+            }
+        }
+
+        return rt::field_assignment(emit(*fa->object), fa->field_name, emit(*fa->value));
+    }
+
     return "";
 }
 
+/**
+ * Main code generation entry point. Generates complete C++ source with headers,
+ * structs, and functions. In test mode, generates a test harness instead.
+ */
 string CodeGen::generate(const unique_ptr<Program>& program, bool test_mode) {
     this->test_mode = test_mode;
+    this->current_program = program.get();
 
     if (test_mode) {
         return generate_test_harness(program);
@@ -74,17 +121,64 @@ string CodeGen::generate(const unique_ptr<Program>& program, bool test_mode) {
     for (const auto& fn : program->functions) {
         out += generate_function(*fn);
     }
+
     return out;
 }
 
+/**
+ * Generates a C++ struct definition with fields and any associated methods.
+ * Methods become member functions within the struct.
+ */
 string CodeGen::generate_struct(const StructDef& def) {
     vector<pair<string, string>> fields;
+
     for (const auto& f : def.fields) {
         fields.push_back({f.name, f.type});
     }
-    return rt::struct_def(def.name, fields);
+
+    // Collect methods for this struct
+    vector<string> method_bodies;
+
+    if (current_program) {
+        for (const auto& m : current_program->methods) {
+            if (m->struct_name == def.name) {
+                method_bodies.push_back(generate_method(*m));
+            }
+        }
+    }
+
+    if (method_bodies.empty()) {
+        return rt::struct_def(def.name, fields);
+    }
+
+    return rt::struct_def_with_methods(def.name, fields, method_bodies);
 }
 
+/**
+ * Generates a C++ member function from a method definition.
+ * Skips the 'self' parameter (becomes implicit 'this').
+ */
+string CodeGen::generate_method(const MethodDef& method) {
+    // Params: skip 'self' since it becomes implicit 'this'
+    vector<pair<string, string>> params;
+
+    for (size_t i = 1; i < method.params.size(); i++) {
+        params.push_back({method.params[i].type, method.params[i].name});
+    }
+
+    vector<string> body;
+
+    for (const auto& stmt : method.body) {
+        body.push_back(generate_statement(*stmt));
+    }
+
+    return rt::method_def(method.name, params, method.return_type, body);
+}
+
+/**
+ * Generates a C++ function. Handles 'main' specially (adds return 0 if no return type).
+ * Maps Nog types to C++ types for parameters and return type.
+ */
 string CodeGen::generate_function(const FunctionDef& fn) {
     bool is_main = (fn.name == "main" && !test_mode);
 
@@ -114,6 +208,10 @@ string CodeGen::generate_function(const FunctionDef& fn) {
     return out;
 }
 
+/**
+ * Generates C++ code for a statement. Handles print(), assert_eq() (in test mode),
+ * if/while statements, method calls, field assignments, and other statements.
+ */
 string CodeGen::generate_statement(const ASTNode& node) {
     if (auto* call = dynamic_cast<const FunctionCall*>(&node)) {
         if (call->name == "print") {
@@ -145,15 +243,31 @@ string CodeGen::generate_statement(const ASTNode& node) {
     }
     if (auto* stmt = dynamic_cast<const WhileStmt*>(&node)) {
         vector<string> body;
+
         for (const auto& s : stmt->body) {
             body.push_back(generate_statement(*s));
         }
+
         return rt::while_stmt(emit(*stmt->condition), body);
     }
+
+    if (auto* call = dynamic_cast<const MethodCall*>(&node)) {
+        return emit(node) + ";";
+    }
+
+    if (auto* fa = dynamic_cast<const FieldAssignment*>(&node)) {
+        return emit(node) + ";";
+    }
+
     return emit(node);
 }
 
+/**
+ * Generates a test harness main() that runs all test_* functions and tracks
+ * failures. Includes the _assert_eq template for test assertions.
+ */
 string CodeGen::generate_test_harness(const unique_ptr<Program>& program) {
+    this->current_program = program.get();
     string out = "#include <iostream>\n#include <string>\n#include <cstdint>\n#include <optional>\n\n";
 
     out += "int _failures = 0;\n\n";

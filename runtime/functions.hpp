@@ -1,3 +1,10 @@
+/**
+ * @file functions.hpp
+ * @brief C++ code generation for Nog functions.
+ *
+ * Helper functions for emitting function definitions.
+ */
+
 #pragma once
 #include <string>
 #include <vector>
@@ -9,11 +16,13 @@ using namespace std;
 
 namespace nog::runtime {
 
+/** Represents a function parameter with type and name */
 struct FunctionParam {
     string type;
     string name;
 };
 
+/** Emits a complete function definition with parameters, return type, and body */
 inline string function_def(const string& name, const vector<FunctionParam>& params,
                            const string& return_type, const vector<string>& body) {
     string rt = return_type.empty() ? "void" : map_type(return_type);
@@ -31,6 +40,7 @@ inline string function_def(const string& name, const vector<FunctionParam>& para
     return out;
 }
 
+/** Emits a complete program by joining all function definitions */
 inline string program(const vector<string>& functions) {
     return fmt::format("{}", fmt::join(functions, ""));
 }

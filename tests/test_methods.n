@@ -1,0 +1,84 @@
+Person :: struct {
+    name str,
+    age int
+}
+
+Person :: get_name(self) -> str {
+    return self.name;
+}
+
+Person :: set_age(self, int new_age) {
+    self.age = new_age;
+}
+
+Person :: greet(self, str greeting) -> str {
+    return greeting;
+}
+
+Person :: is_adult(self) -> bool {
+    if self.age >= 18 {
+        return true;
+    }
+
+    return false;
+}
+
+Person :: birth_year(self, int current_year) -> int {
+    return current_year - self.age;
+}
+
+Point :: struct { x int, y int }
+
+Point :: sum(self) -> int {
+    return self.x + self.y;
+}
+
+fn test_method_no_params() {
+    p := Person { name: "Chris", age: 32 };
+    assert_eq(p.get_name(), "Chris");
+}
+
+fn test_method_with_param() {
+    p := Person { name: "Chris", age: 32 };
+    assert_eq(p.greet("Hello"), "Hello");
+}
+
+fn test_method_mutation() {
+    p := Person { name: "Chris", age: 32 };
+    p.set_age(33);
+    assert_eq(p.age, 33);
+}
+
+fn test_method_returns_bool_true() {
+    adult := Person { name: "Chris", age: 32 };
+    assert_eq(adult.is_adult(), true);
+}
+
+fn test_method_returns_bool_false() {
+    child := Person { name: "Kid", age: 10 };
+    assert_eq(child.is_adult(), false);
+}
+
+fn test_method_computation() {
+    p := Person { name: "Chris", age: 32 };
+    assert_eq(p.birth_year(2025), 1993);
+}
+
+fn test_different_struct_method() {
+    pt := Point { x: 10, y: 20 };
+    assert_eq(pt.sum(), 30);
+}
+
+fn test_multiple_method_calls() {
+    p := Person { name: "Alice", age: 30 };
+    assert_eq(p.get_name(), "Alice");
+    assert_eq(p.is_adult(), true);
+    assert_eq(p.birth_year(2025), 1995);
+}
+
+fn test_method_on_different_instances() {
+    p1 := Person { name: "Bob", age: 25 };
+    p2 := Person { name: "Eve", age: 17 };
+    assert_eq(p1.is_adult(), true);
+    assert_eq(p2.is_adult(), false);
+}

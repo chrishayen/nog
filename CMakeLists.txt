@@ -13,6 +13,7 @@ add_library(nog_lib
     src/lexer.cpp
     src/parser.cpp
     src/codegen.cpp
+    src/typechecker.cpp
 )
 target_link_libraries(nog_lib fmt::fmt)
 

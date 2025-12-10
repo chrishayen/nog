@@ -1,8 +1,20 @@
+/**
+ * @file lexer.cpp
+ * @brief Lexer implementation for the Nog language.
+ *
+ * Implements the tokenization logic that converts raw source text into
+ * a stream of tokens. Recognizes all Nog keywords, operators, and literals.
+ */
+
 #include "lexer.hpp"
 #include <unordered_map>
 
 using namespace std;
 
+/**
+ * @brief Mapping of keyword strings to their token types.
+ * Used during identifier parsing to distinguish keywords from user identifiers.
+ */
 static unordered_map<string, TokenType> keywords = {
     {"fn", TokenType::FN},
     {"return", TokenType::RETURN},
@@ -26,39 +38,61 @@ static unordered_map<string, TokenType> keywords = {
 
 Lexer::Lexer(const string& source) : source(source) {}
 
+/**
+ * Returns the character at the current position, or '\0' if at end of source.
+ */
 char Lexer::current() {
     if (pos >= source.length()) return '\0';
     return source[pos];
 }
 
+/**
+ * Returns the next character (lookahead), or '\0' if at end.
+ */
 char Lexer::peek() {
     if (pos + 1 >= source.length()) return '\0';
     return source[pos + 1];
 }
 
+/**
+ * Advances to the next character, incrementing line count on newlines.
+ */
 void Lexer::advance() {
     if (current() == '\n') line++;
     pos++;
 }
 
+/**
+ * Skips over whitespace characters (space, tab, newline, carriage return).
+ */
 void Lexer::skip_whitespace() {
     while (current() == ' ' || current() == '\n' || current() == '\t' || current() == '\r') {
         advance();
     }
 }
 
+/**
+ * Reads a double-quoted string literal. Assumes current char is '"'.
+ * Consumes characters until the closing quote or end of input.
+ */
 Token Lexer::read_string() {
     int start_line = line;
-    advance();
+    advance();  // skip opening quote
     string value;
+
     while (current() != '"' && current() != '\0') {
         value += current();
         advance();
     }
-    advance();
+
+    advance();  // skip closing quote
     return {TokenType::STRING, value, start_line};
 }
 
+/**
+ * Reads an identifier or keyword. Identifiers start with a letter or underscore
+ * and contain letters, digits, or underscores. Checks against keyword table.
+ */
 Token Lexer::read_identifier() {
     int start_line = line;
     string value;
@@ -74,6 +108,10 @@ Token Lexer::read_identifier() {
     return {TokenType::IDENT, value, start_line};
 }
 
+/**
+ * Reads a numeric literal (integer or float).
+ * Floats are detected by the presence of a decimal point.
+ */
 Token Lexer::read_number() {
     int start_line = line;
     string value;
@@ -81,7 +119,7 @@ Token Lexer::read_number() {
 
     while (isdigit(current()) || current() == '.') {
         if (current() == '.') {
-            if (is_float) break;
+            if (is_float) break;  // second dot ends the number
             is_float = true;
         }
         value += current();
@@ -91,6 +129,10 @@ Token Lexer::read_number() {
     return {is_float ? TokenType::FLOAT : TokenType::NUMBER, value, start_line};
 }
 
+/**
+ * Main tokenization loop. Processes the entire source and returns all tokens.
+ * Handles single and multi-character operators, literals, and keywords.
+ */
 vector<Token> Lexer::tokenize() {
     vector<Token> tokens;
 
