@@ -56,8 +56,24 @@ struct VariableDecl : ASTNode {
     unique_ptr<ASTNode> value;
 };
 
+struct Assignment : ASTNode {
+    string name;
+    unique_ptr<ASTNode> value;
+};
+
 struct ReturnStmt : ASTNode {
     unique_ptr<ASTNode> value;
+};
+
+struct IfStmt : ASTNode {
+    unique_ptr<ASTNode> condition;
+    vector<unique_ptr<ASTNode>> then_body;
+    vector<unique_ptr<ASTNode>> else_body;
+};
+
+struct WhileStmt : ASTNode {
+    unique_ptr<ASTNode> condition;
+    vector<unique_ptr<ASTNode>> body;
 };
 
 // Function

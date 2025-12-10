@@ -174,20 +174,39 @@ unique_ptr<ASTNode> Parser::parse_statement() {
         return parse_return();
     }
 
+    // if statement
+    if (check(TokenType::IF)) {
+        return parse_if();
+    }
+
+    // while loop
+    if (check(TokenType::WHILE)) {
+        return parse_while();
+    }
+
     // typed variable: int x = 5
     if (is_type_token()) {
         return parse_variable_decl();
     }
 
-    // inferred variable or function call: x := 5 or foo()
+    // inferred variable, assignment, or function call
     if (check(TokenType::IDENT)) {
-        // Look ahead to see if it's := (inferred decl) or ( (function call)
         size_t saved_pos = pos;
         advance();
 
         if (check(TokenType::COLON_ASSIGN)) {
             pos = saved_pos;
             return parse_inferred_decl();
+        }
+
+        // assignment: x = expr
+        if (check(TokenType::ASSIGN)) {
+            pos = saved_pos;
+            auto assign = make_unique<Assignment>();
+            assign->name = consume(TokenType::IDENT).value;
+            consume(TokenType::ASSIGN);
+            assign->value = parse_expression();
+            return assign;
         }
 
         pos = saved_pos;
@@ -223,11 +242,80 @@ unique_ptr<ReturnStmt> Parser::parse_return() {
     return ret;
 }
 
+unique_ptr<IfStmt> Parser::parse_if() {
+    consume(TokenType::IF);
+    auto stmt = make_unique<IfStmt>();
+    stmt->condition = parse_expression();
+    consume(TokenType::LBRACE);
+
+    while (!check(TokenType::RBRACE) && !check(TokenType::EOF_TOKEN)) {
+        auto s = parse_statement();
+        if (s) {
+            stmt->then_body.push_back(move(s));
+        }
+    }
+    consume(TokenType::RBRACE);
+
+    if (check(TokenType::ELSE)) {
+        advance();
+        consume(TokenType::LBRACE);
+        while (!check(TokenType::RBRACE) && !check(TokenType::EOF_TOKEN)) {
+            auto s = parse_statement();
+            if (s) {
+                stmt->else_body.push_back(move(s));
+            }
+        }
+        consume(TokenType::RBRACE);
+    }
+
+    return stmt;
+}
+
+unique_ptr<WhileStmt> Parser::parse_while() {
+    consume(TokenType::WHILE);
+    auto stmt = make_unique<WhileStmt>();
+    stmt->condition = parse_expression();
+    consume(TokenType::LBRACE);
+
+    while (!check(TokenType::RBRACE) && !check(TokenType::EOF_TOKEN)) {
+        auto s = parse_statement();
+        if (s) {
+            stmt->body.push_back(move(s));
+        }
+    }
+    consume(TokenType::RBRACE);
+
+    return stmt;
+}
+
 unique_ptr<ASTNode> Parser::parse_expression() {
+    return parse_comparison();
+}
+
+unique_ptr<ASTNode> Parser::parse_comparison() {
+    auto left = parse_additive();
+
+    while (check(TokenType::EQ) || check(TokenType::NE) ||
+           check(TokenType::LT) || check(TokenType::GT) ||
+           check(TokenType::LE) || check(TokenType::GE)) {
+        string op = current().value;
+        advance();
+        auto right = parse_additive();
+
+        auto binop = make_unique<BinaryExpr>();
+        binop->op = op;
+        binop->left = move(left);
+        binop->right = move(right);
+        left = move(binop);
+    }
+
+    return left;
+}
+
+unique_ptr<ASTNode> Parser::parse_additive() {
     auto left = parse_primary();
     left = parse_postfix(move(left));
 
-    // Handle binary operators
     while (check(TokenType::PLUS) || check(TokenType::MINUS) ||
            check(TokenType::STAR) || check(TokenType::SLASH)) {
         string op = current().value;

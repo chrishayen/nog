@@ -33,6 +33,9 @@ string CodeGen::emit(const ASTNode& node) {
     if (auto* decl = dynamic_cast<const VariableDecl*>(&node)) {
         return rt::variable_decl(decl->type, decl->name, emit(*decl->value));
     }
+    if (auto* assign = dynamic_cast<const Assignment*>(&node)) {
+        return rt::assignment(assign->name, emit(*assign->value));
+    }
     if (auto* ret = dynamic_cast<const ReturnStmt*>(&node)) {
         return rt::return_stmt(emit(*ret->value));
     }
@@ -122,6 +125,24 @@ string CodeGen::generate_statement(const ASTNode& node) {
             args.push_back(emit(*arg));
         }
         return rt::function_call(call->name, args) + ";";
+    }
+    if (auto* stmt = dynamic_cast<const IfStmt*>(&node)) {
+        vector<string> then_body;
+        for (const auto& s : stmt->then_body) {
+            then_body.push_back(generate_statement(*s));
+        }
+        vector<string> else_body;
+        for (const auto& s : stmt->else_body) {
+            else_body.push_back(generate_statement(*s));
+        }
+        return rt::if_stmt(emit(*stmt->condition), then_body, else_body);
+    }
+    if (auto* stmt = dynamic_cast<const WhileStmt*>(&node)) {
+        vector<string> body;
+        for (const auto& s : stmt->body) {
+            body.push_back(generate_statement(*s));
+        }
+        return rt::while_stmt(emit(*stmt->condition), body);
     }
     return emit(node);
 }

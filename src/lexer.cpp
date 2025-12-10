@@ -9,6 +9,9 @@ static unordered_map<string, TokenType> keywords = {
     {"true", TokenType::TRUE},
     {"false", TokenType::FALSE},
     {"struct", TokenType::STRUCT},
+    {"if", TokenType::IF},
+    {"else", TokenType::ELSE},
+    {"while", TokenType::WHILE},
     {"int", TokenType::TYPE_INT},
     {"str", TokenType::TYPE_STR},
     {"bool", TokenType::TYPE_BOOL},
@@ -145,8 +148,40 @@ vector<Token> Lexer::tokenize() {
                 advance();
             }
         } else if (current() == '=') {
-            tokens.push_back({TokenType::ASSIGN, "=", start_line});
-            advance();
+            if (peek() == '=') {
+                tokens.push_back({TokenType::EQ, "==", start_line});
+                advance();
+                advance();
+            } else {
+                tokens.push_back({TokenType::ASSIGN, "=", start_line});
+                advance();
+            }
+        } else if (current() == '!') {
+            if (peek() == '=') {
+                tokens.push_back({TokenType::NE, "!=", start_line});
+                advance();
+                advance();
+            } else {
+                advance(); // skip unknown for now
+            }
+        } else if (current() == '<') {
+            if (peek() == '=') {
+                tokens.push_back({TokenType::LE, "<=", start_line});
+                advance();
+                advance();
+            } else {
+                tokens.push_back({TokenType::LT, "<", start_line});
+                advance();
+            }
+        } else if (current() == '>') {
+            if (peek() == '=') {
+                tokens.push_back({TokenType::GE, ">=", start_line});
+                advance();
+                advance();
+            } else {
+                tokens.push_back({TokenType::GT, ">", start_line});
+                advance();
+            }
         } else if (current() == '"') {
             tokens.push_back(read_string());
         } else if (isdigit(current())) {

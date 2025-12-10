@@ -29,7 +29,11 @@ private:
     unique_ptr<VariableDecl> parse_variable_decl();
     unique_ptr<VariableDecl> parse_inferred_decl();
     unique_ptr<ReturnStmt> parse_return();
+    unique_ptr<IfStmt> parse_if();
+    unique_ptr<WhileStmt> parse_while();
     unique_ptr<ASTNode> parse_expression();
+    unique_ptr<ASTNode> parse_comparison();
+    unique_ptr<ASTNode> parse_additive();
     unique_ptr<ASTNode> parse_primary();
     unique_ptr<ASTNode> parse_postfix(unique_ptr<ASTNode> left);
     unique_ptr<StructLiteral> parse_struct_literal(const string& name);

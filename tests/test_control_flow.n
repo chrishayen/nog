@@ -1,0 +1,108 @@
+fn test_if_true() {
+    int x = 0
+    if true {
+        x = 42
+    }
+    assert_eq(x, 42)
+}
+
+fn test_if_false() {
+    int x = 10
+    if false {
+        x = 0
+    }
+    assert_eq(x, 10)
+}
+
+fn test_if_else() {
+    int x = 0
+    if false {
+        x = 1
+    } else {
+        x = 2
+    }
+    assert_eq(x, 2)
+}
+
+fn test_comparison_equal() {
+    int a = 5
+    int b = 5
+    int result = 0
+    if a == b {
+        result = 1
+    }
+    assert_eq(result, 1)
+}
+
+fn test_comparison_not_equal() {
+    int a = 5
+    int b = 10
+    int result = 0
+    if a != b {
+        result = 1
+    }
+    assert_eq(result, 1)
+}
+
+fn test_comparison_less() {
+    int a = 3
+    int b = 5
+    int result = 0
+    if a < b {
+        result = 1
+    }
+    assert_eq(result, 1)
+}
+
+fn test_comparison_greater() {
+    int a = 10
+    int b = 5
+    int result = 0
+    if a > b {
+        result = 1
+    }
+    assert_eq(result, 1)
+}
+
+fn test_comparison_less_equal() {
+    int result = 0
+    if 5 <= 5 {
+        result = result + 1
+    }
+    if 3 <= 5 {
+        result = result + 1
+    }
+    assert_eq(result, 2)
+}
+
+fn test_comparison_greater_equal() {
+    int result = 0
+    if 5 >= 5 {
+        result = result + 1
+    }
+    if 7 >= 5 {
+        result = result + 1
+    }
+    assert_eq(result, 2)
+}
+
+fn test_while_loop() {
+    int i = 0
+    int sum = 0
+    while i < 5 {
+        sum = sum + i
+        i = i + 1
+    }
+    assert_eq(sum, 10)
+}
+
+fn test_nested_if() {
+    int x = 5
+    int result = 0
+    if x > 0 {
+        if x < 10 {
+            result = 1
+        }
+    }
+    assert_eq(result, 1)
+}

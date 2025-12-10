@@ -10,6 +10,9 @@ enum class TokenType {
     TRUE,
     FALSE,
     STRUCT,
+    IF,
+    ELSE,
+    WHILE,
 
     // Types
     TYPE_INT,
@@ -43,6 +46,14 @@ enum class TokenType {
     MINUS,
     STAR,
     SLASH,
+
+    // Comparison
+    EQ,
+    NE,
+    LT,
+    GT,
+    LE,
+    GE,
 
     EOF_TOKEN
 };
