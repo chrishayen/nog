@@ -9,9 +9,7 @@ public:
 
 private:
     bool test_mode = false;
-    std::string generate_function(const FunctionDef& func);
+    std::string generate_function(const FunctionDef& fn);
     std::string generate_statement(const ASTNode& node);
-    std::string generate_expression(const ASTNode& node);
     std::string generate_test_harness(const std::unique_ptr<Program>& program);
-    std::string map_type(const std::string& nog_type);
 };
