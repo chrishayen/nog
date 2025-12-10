@@ -8,6 +8,7 @@ static unordered_map<string, TokenType> keywords = {
     {"return", TokenType::RETURN},
     {"true", TokenType::TRUE},
     {"false", TokenType::FALSE},
+    {"struct", TokenType::STRUCT},
     {"int", TokenType::TYPE_INT},
     {"str", TokenType::TYPE_STR},
     {"bool", TokenType::TYPE_BOOL},
@@ -127,9 +128,16 @@ vector<Token> Lexer::tokenize() {
                 tokens.push_back({TokenType::MINUS, "-", start_line});
                 advance();
             }
+        } else if (current() == '.') {
+            tokens.push_back({TokenType::DOT, ".", start_line});
+            advance();
         } else if (current() == ':') {
             if (peek() == '=') {
                 tokens.push_back({TokenType::COLON_ASSIGN, ":=", start_line});
+                advance();
+                advance();
+            } else if (peek() == ':') {
+                tokens.push_back({TokenType::DOUBLE_COLON, "::", start_line});
                 advance();
                 advance();
             } else {

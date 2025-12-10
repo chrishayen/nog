@@ -58,7 +58,6 @@ int run_tests(const string& path) {
         if (source.empty()) continue;
 
         string cpp_code = transpile(source, true);
-
         string tmp_cpp = "/tmp/nog_test.cpp";
         string tmp_bin = "/tmp/nog_test";
 

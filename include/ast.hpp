@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <utility>
 
 using namespace std;
 
@@ -72,6 +73,28 @@ struct FunctionDef : ASTNode {
     vector<unique_ptr<ASTNode>> body;
 };
 
+// Struct
+struct StructField {
+    string name;
+    string type;
+};
+
+struct StructDef : ASTNode {
+    string name;
+    vector<StructField> fields;
+};
+
+struct StructLiteral : ASTNode {
+    string struct_name;
+    vector<pair<string, unique_ptr<ASTNode>>> field_values;
+};
+
+struct FieldAccess : ASTNode {
+    unique_ptr<ASTNode> object;
+    string field_name;
+};
+
 struct Program : ASTNode {
+    vector<unique_ptr<StructDef>> structs;
     vector<unique_ptr<FunctionDef>> functions;
 };

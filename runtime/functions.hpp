@@ -25,7 +25,7 @@ inline string function_def(const string& name, const vector<FunctionParam>& para
 
     string out = fmt::format("{} {}({}) {{\n", rt, name, fmt::join(param_strs, ", "));
     for (const auto& stmt : body) {
-        out += fmt::format("    {}\n", stmt);
+        out += fmt::format("\t{}\n", stmt);
     }
     out += "}\n";
     return out;

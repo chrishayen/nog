@@ -17,7 +17,7 @@ clean:
 rebuild: clean build
 
 test: build
-	@cd $(BUILD_DIR) && ctest --output-on-failure
+	@$(BUILD_DIR)/nog test tests/
 
 run: build
 	@$(BUILD_DIR)/nog $(ARGS)

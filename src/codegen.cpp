@@ -36,6 +36,16 @@ string CodeGen::emit(const ASTNode& node) {
     if (auto* ret = dynamic_cast<const ReturnStmt*>(&node)) {
         return rt::return_stmt(emit(*ret->value));
     }
+    if (auto* lit = dynamic_cast<const StructLiteral*>(&node)) {
+        vector<pair<string, string>> field_values;
+        for (const auto& [name, value] : lit->field_values) {
+            field_values.push_back({name, emit(*value)});
+        }
+        return rt::struct_literal(lit->struct_name, field_values);
+    }
+    if (auto* access = dynamic_cast<const FieldAccess*>(&node)) {
+        return rt::field_access(emit(*access->object), access->field_name);
+    }
     return "";
 }
 
@@ -47,10 +57,23 @@ string CodeGen::generate(const unique_ptr<Program>& program, bool test_mode) {
     }
 
     string out = "#include <iostream>\n#include <string>\n\n";
+
+    for (const auto& s : program->structs) {
+        out += generate_struct(*s) + "\n\n";
+    }
+
     for (const auto& fn : program->functions) {
         out += generate_function(*fn);
     }
     return out;
+}
+
+string CodeGen::generate_struct(const StructDef& def) {
+    vector<pair<string, string>> fields;
+    for (const auto& f : def.fields) {
+        fields.push_back({f.name, f.type});
+    }
+    return rt::struct_def(def.name, fields);
 }
 
 string CodeGen::generate_function(const FunctionDef& fn) {
@@ -75,7 +98,7 @@ string CodeGen::generate_function(const FunctionDef& fn) {
         // Insert return 0 before closing brace
         auto pos = out.rfind("}\n");
         if (pos != string::npos) {
-            out.insert(pos, "    return 0;\n");
+            out.insert(pos, "\treturn 0;\n");
         }
     }
 
@@ -107,13 +130,17 @@ string CodeGen::generate_test_harness(const unique_ptr<Program>& program) {
     string out = "#include <iostream>\n#include <string>\n#include <cstdint>\n\n";
 
     out += "int _failures = 0;\n\n";
-    out += "template<typename T>\n";
-    out += "void _assert_eq(T a, T b, int line) {\n";
-    out += "    if (a != b) {\n";
-    out += "        std::cerr << \"line \" << line << \": FAIL: \" << a << \" != \" << b << std::endl;\n";
-    out += "        _failures++;\n";
-    out += "    }\n";
+    out += "template<typename T, typename U>\n";
+    out += "void _assert_eq(T a, U b, int line) {\n";
+    out += "\tif (a != b) {\n";
+    out += "\t\tstd::cerr << \"line \" << line << \": FAIL: \" << a << \" != \" << b << std::endl;\n";
+    out += "\t\t_failures++;\n";
+    out += "\t}\n";
     out += "}\n\n";
+
+    for (const auto& s : program->structs) {
+        out += generate_struct(*s) + "\n\n";
+    }
 
     vector<string> test_names;
     for (const auto& fn : program->functions) {
@@ -125,10 +152,10 @@ string CodeGen::generate_test_harness(const unique_ptr<Program>& program) {
 
     out += "\nint main() {\n";
     for (const auto& name : test_names) {
-        out += "    " + name + "();\n";
+        out += "\t" + name + "();\n";
     }
-    out += "    // exit code signals pass/fail\n";
-    out += "    return _failures;\n";
+    out += "\t// exit code signals pass/fail\n";
+    out += "\treturn _failures;\n";
     out += "}\n";
 
     return out;

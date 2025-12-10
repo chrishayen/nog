@@ -1,0 +1,25 @@
+Person :: struct { name str, age int }
+
+fn test_struct_field_access() {
+    p := Person { name: "Chris", age: 32 }
+    assert_eq(p.name, "Chris")
+    assert_eq(p.age, 32)
+}
+
+fn test_struct_multiple_instances() {
+    a := Person { name: "Alice", age: 25 }
+    b := Person { name: "Bob", age: 30 }
+    assert_eq(a.name, "Alice")
+    assert_eq(b.name, "Bob")
+    assert_eq(a.age, 25)
+    assert_eq(b.age, 30)
+}
+
+Point :: struct { x int, y int }
+
+fn test_numeric_struct() {
+    p := Point { x: 10, y: 20 }
+    assert_eq(p.x, 10)
+    assert_eq(p.y, 20)
+    assert_eq(p.x + p.y, 30)
+}

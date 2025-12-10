@@ -9,6 +9,7 @@ enum class TokenType {
     RETURN,
     TRUE,
     FALSE,
+    STRUCT,
 
     // Types
     TYPE_INT,
@@ -33,6 +34,8 @@ enum class TokenType {
     RBRACE,
     COMMA,
     COLON,
+    DOUBLE_COLON,
+    DOT,
     ASSIGN,
     COLON_ASSIGN,
     ARROW,

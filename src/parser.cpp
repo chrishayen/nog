@@ -57,12 +57,66 @@ unique_ptr<Program> Parser::parse() {
     while (!check(TokenType::EOF_TOKEN)) {
         if (check(TokenType::FN)) {
             program->functions.push_back(parse_function());
+        } else if (check(TokenType::IDENT)) {
+            // Check for struct definition: Name :: struct { ... }
+            size_t saved_pos = pos;
+            string name = current().value;
+            advance();
+            if (check(TokenType::DOUBLE_COLON)) {
+                advance();
+                if (check(TokenType::STRUCT)) {
+                    program->structs.push_back(parse_struct_def(name));
+                    continue;
+                }
+            }
+            pos = saved_pos;
+            advance();
         } else {
             advance();
         }
     }
 
     return program;
+}
+
+unique_ptr<StructDef> Parser::parse_struct_def(const string& name) {
+    consume(TokenType::STRUCT);
+    consume(TokenType::LBRACE);
+
+    auto def = make_unique<StructDef>();
+    def->name = name;
+    struct_names.push_back(name);
+
+    // Parse fields: name type, name type
+    while (!check(TokenType::RBRACE) && !check(TokenType::EOF_TOKEN)) {
+        StructField field;
+        field.name = consume(TokenType::IDENT).value;
+
+        if (is_type_token()) {
+            field.type = token_to_type(current().type);
+            advance();
+        } else if (check(TokenType::IDENT)) {
+            // Custom type (another struct)
+            field.type = current().value;
+            advance();
+        }
+
+        def->fields.push_back(field);
+
+        if (check(TokenType::COMMA)) {
+            advance();
+        }
+    }
+
+    consume(TokenType::RBRACE);
+    return def;
+}
+
+bool Parser::is_struct_type(const string& name) {
+    for (const auto& s : struct_names) {
+        if (s == name) return true;
+    }
+    return false;
 }
 
 unique_ptr<FunctionDef> Parser::parse_function() {
@@ -171,6 +225,7 @@ unique_ptr<ReturnStmt> Parser::parse_return() {
 
 unique_ptr<ASTNode> Parser::parse_expression() {
     auto left = parse_primary();
+    left = parse_postfix(move(left));
 
     // Handle binary operators
     while (check(TokenType::PLUS) || check(TokenType::MINUS) ||
@@ -178,6 +233,7 @@ unique_ptr<ASTNode> Parser::parse_expression() {
         string op = current().value;
         advance();
         auto right = parse_primary();
+        right = parse_postfix(move(right));
 
         auto binop = make_unique<BinaryExpr>();
         binop->op = op;
@@ -221,6 +277,10 @@ unique_ptr<ASTNode> Parser::parse_primary() {
     if (check(TokenType::IDENT)) {
         Token tok = current();
         advance();
+        // Check if it's a struct literal: TypeName { field: value, ... }
+        if (check(TokenType::LBRACE) && is_struct_type(tok.value)) {
+            return parse_struct_literal(tok.value);
+        }
         // Check if it's a function call
         if (check(TokenType::LPAREN)) {
             auto call = make_unique<FunctionCall>();
@@ -266,4 +326,40 @@ unique_ptr<FunctionCall> Parser::parse_function_call() {
 
     consume(TokenType::RPAREN);
     return call;
+}
+
+unique_ptr<ASTNode> Parser::parse_postfix(unique_ptr<ASTNode> left) {
+    while (check(TokenType::DOT)) {
+        advance();
+        string field_name = consume(TokenType::IDENT).value;
+
+        auto access = make_unique<FieldAccess>();
+        access->object = move(left);
+        access->field_name = field_name;
+        left = move(access);
+    }
+    return left;
+}
+
+unique_ptr<StructLiteral> Parser::parse_struct_literal(const string& name) {
+    consume(TokenType::LBRACE);
+
+    auto lit = make_unique<StructLiteral>();
+    lit->struct_name = name;
+
+    // Parse field values: field: value, field: value
+    while (!check(TokenType::RBRACE) && !check(TokenType::EOF_TOKEN)) {
+        string field_name = consume(TokenType::IDENT).value;
+        consume(TokenType::COLON);
+        auto value = parse_expression();
+
+        lit->field_values.push_back({field_name, move(value)});
+
+        if (check(TokenType::COMMA)) {
+            advance();
+        }
+    }
+
+    consume(TokenType::RBRACE);
+    return lit;
 }
