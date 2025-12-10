@@ -9,10 +9,12 @@ enum class TokenType {
     LBRACE,
     RBRACE,
     STRING,
+    COMMA,
     EOF_TOKEN
 };
 
 struct Token {
     TokenType type;
     std::string value;
+    int line = 1;
 };

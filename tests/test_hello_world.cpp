@@ -3,7 +3,7 @@
 #include "parser.hpp"
 #include "codegen.hpp"
 
-TEST(HelloWorld, TranspilesSimplePrint) {
+TEST(Transpile, HelloWorld) {
     std::string source = R"(
 fn main() {
     print("Hello, World!")

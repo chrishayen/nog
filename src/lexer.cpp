@@ -13,6 +13,7 @@ char Lexer::peek() {
 }
 
 void Lexer::advance() {
+    if (current() == '\n') line++;
     pos++;
 }
 
@@ -23,6 +24,7 @@ void Lexer::skip_whitespace() {
 }
 
 Token Lexer::read_string() {
+    int start_line = line;
     advance(); // skip opening quote
     std::string value;
     while (current() != '"' && current() != '\0') {
@@ -30,10 +32,11 @@ Token Lexer::read_string() {
         advance();
     }
     advance(); // skip closing quote
-    return {TokenType::STRING, value};
+    return {TokenType::STRING, value, start_line};
 }
 
 Token Lexer::read_identifier() {
+    int start_line = line;
     std::string value;
     while (std::isalnum(current()) || current() == '_') {
         value += current();
@@ -41,9 +44,9 @@ Token Lexer::read_identifier() {
     }
 
     if (value == "fn") {
-        return {TokenType::FN, value};
+        return {TokenType::FN, value, start_line};
     }
-    return {TokenType::IDENT, value};
+    return {TokenType::IDENT, value, start_line};
 }
 
 std::vector<Token> Lexer::tokenize() {
@@ -55,26 +58,29 @@ std::vector<Token> Lexer::tokenize() {
         if (current() == '\0') break;
 
         if (current() == '(') {
-            tokens.push_back({TokenType::LPAREN, "("});
+            tokens.push_back({TokenType::LPAREN, "(", line});
             advance();
         } else if (current() == ')') {
-            tokens.push_back({TokenType::RPAREN, ")"});
+            tokens.push_back({TokenType::RPAREN, ")", line});
             advance();
         } else if (current() == '{') {
-            tokens.push_back({TokenType::LBRACE, "{"});
+            tokens.push_back({TokenType::LBRACE, "{", line});
             advance();
         } else if (current() == '}') {
-            tokens.push_back({TokenType::RBRACE, "}"});
+            tokens.push_back({TokenType::RBRACE, "}", line});
+            advance();
+        } else if (current() == ',') {
+            tokens.push_back({TokenType::COMMA, ",", line});
             advance();
         } else if (current() == '"') {
             tokens.push_back(read_string());
         } else if (std::isalpha(current()) || current() == '_') {
             tokens.push_back(read_identifier());
         } else {
-            advance(); // skip unknown chars for now
+            advance();
         }
     }
 
-    tokens.push_back({TokenType::EOF_TOKEN, ""});
+    tokens.push_back({TokenType::EOF_TOKEN, "", line});
     return tokens;
 }

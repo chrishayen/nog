@@ -1,0 +1,7 @@
+fn test_string_equality() {
+    assert_eq("hello", "hello")
+}
+
+fn test_another() {
+    assert_eq("world", "world")
+}

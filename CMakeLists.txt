@@ -21,6 +21,7 @@ find_package(GTest REQUIRED)
 
 add_executable(nog_tests
     tests/test_hello_world.cpp
+    tests/test_assert.cpp
 )
 target_link_libraries(nog_tests nog_lib GTest::gtest GTest::gtest_main)
 add_test(NAME nog_tests COMMAND nog_tests)

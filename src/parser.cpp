@@ -5,7 +5,7 @@ Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens) {}
 
 Token Parser::current() {
     if (pos >= tokens.size()) {
-        return {TokenType::EOF_TOKEN, ""};
+        return {TokenType::EOF_TOKEN, "", 0};
     }
     return tokens[pos];
 }
@@ -73,11 +73,14 @@ std::unique_ptr<FunctionCall> Parser::parse_function_call() {
 
     auto call = std::make_unique<FunctionCall>();
     call->name = name.value;
+    call->line = name.line;
 
     while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
         if (check(TokenType::STRING)) {
             Token str = consume(TokenType::STRING);
             call->args.push_back(std::make_unique<StringLiteral>(str.value));
+        } else if (check(TokenType::COMMA)) {
+            advance();
         } else {
             advance();
         }

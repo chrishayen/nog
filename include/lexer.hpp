@@ -11,6 +11,7 @@ public:
 private:
     std::string source;
     size_t pos = 0;
+    int line = 1;
 
     char current();
     char peek();

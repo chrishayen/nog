@@ -15,6 +15,7 @@ struct StringLiteral : ASTNode {
 struct FunctionCall : ASTNode {
     std::string name;
     std::vector<std::unique_ptr<ASTNode>> args;
+    int line = 0;
 };
 
 struct FunctionDef : ASTNode {
