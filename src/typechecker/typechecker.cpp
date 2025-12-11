@@ -293,6 +293,8 @@ void TypeChecker::check_statement(const ASTNode& stmt) {
         infer_type(*call);
     } else if (auto* mcall = dynamic_cast<const MethodCall*>(&stmt)) {
         infer_type(*mcall);
+    } else if (auto* await_expr = dynamic_cast<const AwaitExpr*>(&stmt)) {
+        infer_type(*await_expr);
     }
 }
 

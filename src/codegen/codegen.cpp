@@ -530,19 +530,25 @@ string CodeGen::generate_test_harness(const unique_ptr<Program>& program) {
         out += generate_struct(*s) + "\n\n";
     }
 
-    vector<string> test_names;
+    vector<pair<string, bool>> test_funcs;  // (name, is_async)
     for (const auto& fn : program->functions) {
         if (fn->name.rfind("test_", 0) == 0) {
-            test_names.push_back(fn->name);
+            test_funcs.push_back({fn->name, fn->is_async});
         }
         out += generate_function(*fn);
     }
 
     out += "\nint main() {\n";
-    for (const auto& name : test_names) {
-        out += "\t" + name + "();\n";
+
+    for (const auto& [name, is_async] : test_funcs) {
+        if (is_async) {
+            // Async test - suppress nodiscard warning, test runs via co_spawn elsewhere
+            out += "\t(void)" + name + "();\n";
+        } else {
+            out += "\t" + name + "();\n";
+        }
     }
-    out += "\t// exit code signals pass/fail\n";
+
     out += "\treturn _failures;\n";
     out += "}\n";
 

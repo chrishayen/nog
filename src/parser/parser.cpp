@@ -372,19 +372,25 @@ unique_ptr<FunctionDef> Parser::parse_function(Visibility vis, bool is_async) {
     func->visibility = vis;
     func->is_async = is_async;
 
-    // Parse parameters: fn foo(int a, int b)
+    // Parse parameters: fn foo(int a, int b) or fn foo(Person p)
     while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
+        FunctionParam param;
+
         if (is_type_token()) {
-            FunctionParam param;
             param.type = token_to_type(current().type);
             advance();
-            param.name = consume(TokenType::IDENT).value;
-            func->params.push_back(param);
-
-            if (check(TokenType::COMMA)) {
-                advance();
-            }
+        } else if (check(TokenType::IDENT)) {
+            // Custom type (struct or unknown type - typechecker will validate)
+            param.type = current().value;
+            advance();
         } else {
+            throw runtime_error("expected type in parameter list at line " + to_string(current().line));
+        }
+
+        param.name = consume(TokenType::IDENT).value;
+        func->params.push_back(param);
+
+        if (check(TokenType::COMMA)) {
             advance();
         }
     }

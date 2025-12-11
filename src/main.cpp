@@ -112,34 +112,59 @@ string transpile(const string& source, const string& filename, bool test_mode) {
 }
 
 /**
+ * Checks if a path component is "errors" directory.
+ * Used to identify negative test files.
+ */
+bool is_error_test(const fs::path& path) {
+    for (const auto& part : path) {
+        if (part == "errors") {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Runs tests on all .n files in a directory (or a single file).
  * Each test file is transpiled, compiled with g++, and executed.
  * Test functions (test_*) use assert_eq for assertions.
+ * Files in tests/errors/ are expected to fail with specific error messages.
  * Returns 0 if all tests pass, 1 if any fail.
  */
 int run_tests(const string& path) {
     vector<fs::path> test_files;
+    vector<fs::path> error_test_files;
 
     if (fs::is_directory(path)) {
         for (const auto& entry : fs::recursive_directory_iterator(path)) {
             if (entry.path().extension() == ".n") {
-                test_files.push_back(entry.path());
+                if (is_error_test(entry.path())) {
+                    error_test_files.push_back(entry.path());
+                } else {
+                    test_files.push_back(entry.path());
+                }
             }
         }
     } else if (fs::exists(path)) {
-        test_files.push_back(path);
+        if (is_error_test(path)) {
+            error_test_files.push_back(path);
+        } else {
+            test_files.push_back(path);
+        }
     } else {
         cerr << "Error: Path does not exist: " << path << endl;
         return 1;
     }
 
-    if (test_files.empty()) {
+    if (test_files.empty() && error_test_files.empty()) {
         cerr << "No .n files found" << endl;
         return 1;
     }
 
     int total_failures = 0;
 
+    // Run positive tests (expect compilation to succeed)
     for (const auto& test_file : test_files) {
         string source = read_file(test_file.string());
         if (source.empty()) continue;
@@ -169,8 +194,45 @@ int run_tests(const string& path) {
         }
 
         int test_result = system(tmp_bin.c_str());
+
         if (test_result != 0) {
             cout << "\033[31mFAIL\033[0m " << test_file.string() << endl;
+            total_failures++;
+        } else {
+            cout << "\033[32mPASS\033[0m " << test_file.string() << endl;
+        }
+    }
+
+    // Run negative tests (expect compilation to fail with specific error)
+    for (const auto& test_file : error_test_files) {
+        string source = read_file(test_file.string());
+        if (source.empty()) continue;
+
+        // Capture stderr to check error message
+        stringstream error_capture;
+        streambuf* old_cerr = cerr.rdbuf(error_capture.rdbuf());
+
+        string cpp_code = transpile(source, test_file.string(), false);
+
+        cerr.rdbuf(old_cerr);
+        string error_output = error_capture.str();
+
+        // Extract expected error from filename (replace underscores with spaces)
+        string expected_error = test_file.stem().string();
+
+        for (char& c : expected_error) {
+            if (c == '_') {
+                c = ' ';
+            }
+        }
+
+        if (!cpp_code.empty()) {
+            cout << "\033[31mFAIL\033[0m " << test_file.string()
+                 << " (expected error, but compiled)" << endl;
+            total_failures++;
+        } else if (error_output.find(expected_error) == string::npos) {
+            cout << "\033[31mFAIL\033[0m " << test_file.string()
+                 << " (expected '" << expected_error << "', got: " << error_output << ")" << endl;
             total_failures++;
         } else {
             cout << "\033[32mPASS\033[0m " << test_file.string() << endl;
