@@ -79,44 +79,109 @@ string Parser::token_to_type(TokenType type) {
 }
 
 /**
+ * Parses an import statement: import module.path;
+ * Returns the module path with dots preserved.
+ */
+unique_ptr<ImportStmt> Parser::parse_import() {
+    consume(TokenType::IMPORT);
+
+    // Parse module path: math or utils.helpers
+    string module_path = consume(TokenType::IDENT).value;
+
+    while (check(TokenType::DOT)) {
+        advance();
+        module_path += "." + consume(TokenType::IDENT).value;
+    }
+
+    consume(TokenType::SEMICOLON);
+
+    auto import = make_unique<ImportStmt>(module_path);
+    imported_modules.push_back(import->alias);
+    return import;
+}
+
+/**
+ * Parses visibility annotation: @private
+ * Returns Private if found, Public otherwise.
+ */
+Visibility Parser::parse_visibility() {
+    if (check(TokenType::AT)) {
+        advance();
+
+        if (check(TokenType::PRIVATE)) {
+            advance();
+            return Visibility::Private;
+        }
+    }
+
+    return Visibility::Public;
+}
+
+/**
+ * Checks if the given name is an imported module alias.
+ */
+bool Parser::is_imported_module(const string& name) {
+    for (const auto& m : imported_modules) {
+        if (m == name) return true;
+    }
+
+    return false;
+}
+
+/**
  * Main parsing entry point. Parses the complete token stream into a Program AST.
- * Recognizes function definitions (fn), struct definitions (Name :: struct),
+ * Parses imports first, then function definitions (fn), struct definitions (Name :: struct),
  * and method definitions (Name :: method_name).
  */
 unique_ptr<Program> Parser::parse() {
     auto program = make_unique<Program>();
 
+    // Parse imports first (must be at top of file)
+    while (check(TokenType::IMPORT)) {
+        program->imports.push_back(parse_import());
+    }
+
     while (!check(TokenType::EOF_TOKEN)) {
+        // Check for visibility annotation
+        Visibility vis = parse_visibility();
+
         if (check(TokenType::FN)) {
-            program->functions.push_back(parse_function());
-        } else if (check(TokenType::IDENT)) {
-            // Check for struct definition: Name :: struct { ... }
-            // or method definition: Name :: method_name(...) -> type { ... }
-            size_t saved_pos = pos;
-            Token name_tok = current();
-            string name = name_tok.value;
+            program->functions.push_back(parse_function(vis));
+            continue;
+        }
+
+        if (!check(TokenType::IDENT)) {
             advance();
+            continue;
+        }
 
-            if (check(TokenType::DOUBLE_COLON)) {
-                advance();
+        // Check for struct definition: Name :: struct { ... }
+        // or method definition: Name :: method_name(...) -> type { ... }
+        size_t saved_pos = pos;
+        Token name_tok = current();
+        string name = name_tok.value;
+        advance();
 
-                if (check(TokenType::STRUCT)) {
-                    program->structs.push_back(parse_struct_def(name));
-                    continue;
-                }
-
-                if (check(TokenType::IDENT)) {
-                    // Method definition: Name :: method_name(...) -> type { ... }
-                    program->methods.push_back(parse_method_def(name, name_tok.line));
-                    continue;
-                }
-            }
-
+        if (!check(TokenType::DOUBLE_COLON)) {
             pos = saved_pos;
             advance();
-        } else {
-            advance();
+            continue;
         }
+
+        advance();
+
+        if (check(TokenType::STRUCT)) {
+            program->structs.push_back(parse_struct_def(name, vis));
+            continue;
+        }
+
+        if (check(TokenType::IDENT)) {
+            program->methods.push_back(parse_method_def(name, name_tok.line, vis));
+            continue;
+        }
+
+        pos = saved_pos;
+        advance();
     }
 
     return program;
@@ -126,12 +191,13 @@ unique_ptr<Program> Parser::parse() {
  * Parses a struct definition: Name :: struct { field type, ... }
  * Registers the struct name for later type resolution.
  */
-unique_ptr<StructDef> Parser::parse_struct_def(const string& name) {
+unique_ptr<StructDef> Parser::parse_struct_def(const string& name, Visibility vis) {
     consume(TokenType::STRUCT);
     consume(TokenType::LBRACE);
 
     auto def = make_unique<StructDef>();
     def->name = name;
+    def->visibility = vis;
     struct_names.push_back(name);
 
     // Parse fields: name type, name type
@@ -173,7 +239,7 @@ bool Parser::is_struct_type(const string& name) {
  * Parses a method definition: StructName :: method_name(self, params) -> type { body }
  * The first parameter must be 'self', which becomes implicit 'this' in generated C++.
  */
-unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int line) {
+unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int line, Visibility vis) {
     // We're past "Name ::", now at method_name
     Token method_name = consume(TokenType::IDENT);
     consume(TokenType::LPAREN);
@@ -182,6 +248,7 @@ unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int li
     method->struct_name = struct_name;
     method->name = method_name.value;
     method->line = line;
+    method->visibility = vis;
 
     // Parse parameters (first should be 'self')
     while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
@@ -245,13 +312,14 @@ unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int li
 /**
  * Parses a function definition: fn name(type param, ...) -> return_type { body }
  */
-unique_ptr<FunctionDef> Parser::parse_function() {
+unique_ptr<FunctionDef> Parser::parse_function(Visibility vis) {
     consume(TokenType::FN);
     Token name = consume(TokenType::IDENT);
     consume(TokenType::LPAREN);
 
     auto func = make_unique<FunctionDef>();
     func->name = name.value;
+    func->visibility = vis;
 
     // Parse parameters: fn foo(int a, int b)
     while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
@@ -349,6 +417,34 @@ unique_ptr<ASTNode> Parser::parse_statement() {
             decl->value = parse_expression();
             consume(TokenType::SEMICOLON);
             return decl;
+        }
+
+        // Check for qualified type: module.Type var = ...
+        if (check(TokenType::DOT) && is_imported_module(ident)) {
+            advance();
+            string type_name = consume(TokenType::IDENT).value;
+            string qualified_type = ident + "." + type_name;
+
+            // This is a qualified type declaration: module.Type var = ...
+            if (check(TokenType::IDENT) || check(TokenType::OPTIONAL)) {
+                auto decl = make_unique<VariableDecl>();
+                decl->type = qualified_type;
+
+                if (check(TokenType::OPTIONAL)) {
+                    decl->is_optional = true;
+                    advance();
+                }
+
+                decl->name = consume(TokenType::IDENT).value;
+                consume(TokenType::ASSIGN);
+                decl->value = parse_expression();
+                consume(TokenType::SEMICOLON);
+                return decl;
+            }
+
+            // Otherwise treat it as a qualified function call or other expression
+            pos = saved_pos;
+            return parse_function_call();
         }
 
         // field access: obj.field = value or obj.method()
@@ -611,28 +707,75 @@ unique_ptr<ASTNode> Parser::parse_primary() {
     if (check(TokenType::IDENT)) {
         Token tok = current();
         advance();
+
+        // Check for qualified reference: module.item (e.g., math.add)
+        if (check(TokenType::DOT) && is_imported_module(tok.value)) {
+            advance();
+            Token item_tok = consume(TokenType::IDENT);
+            string item_name = item_tok.value;
+
+            // Check if it's a qualified function call: module.func(args)
+            if (check(TokenType::LPAREN)) {
+                auto call = make_unique<FunctionCall>();
+                call->name = tok.value + "." + item_name;  // Store as "module.func"
+                call->line = tok.line;
+                consume(TokenType::LPAREN);
+
+                while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
+                    auto arg = parse_expression();
+
+                    if (arg) {
+                        call->args.push_back(move(arg));
+                    }
+
+                    if (check(TokenType::COMMA)) {
+                        advance();
+                    }
+                }
+
+                consume(TokenType::RPAREN);
+                return call;
+            }
+
+            // Check if it's a qualified struct literal: module.Type { ... }
+            if (check(TokenType::LBRACE)) {
+                return parse_struct_literal(tok.value + "." + item_name);
+            }
+
+            // Otherwise it's a qualified reference to a value/type
+            auto qref = make_unique<QualifiedRef>(tok.value, item_name);
+            qref->line = tok.line;
+            return qref;
+        }
+
         // Check if it's a struct literal: TypeName { field: value, ... }
         if (check(TokenType::LBRACE) && is_struct_type(tok.value)) {
             return parse_struct_literal(tok.value);
         }
+
         // Check if it's a function call
         if (check(TokenType::LPAREN)) {
             auto call = make_unique<FunctionCall>();
             call->name = tok.value;
             call->line = tok.line;
             consume(TokenType::LPAREN);
+
             while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
                 auto arg = parse_expression();
+
                 if (arg) {
                     call->args.push_back(move(arg));
                 }
+
                 if (check(TokenType::COMMA)) {
                     advance();
                 }
             }
+
             consume(TokenType::RPAREN);
             return call;
         }
+
         return make_unique<VariableRef>(tok.value);
     }
 

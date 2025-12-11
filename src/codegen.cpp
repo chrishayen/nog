@@ -42,12 +42,26 @@ string CodeGen::emit(const ASTNode& node) {
     if (auto* expr = dynamic_cast<const IsNone*>(&node)) {
         return rt::is_none(emit(*expr->value));
     }
+    if (auto* qref = dynamic_cast<const QualifiedRef*>(&node)) {
+        // Qualified reference: module.name -> module::name
+        return qref->module_name + "::" + qref->name;
+    }
+
     if (auto* call = dynamic_cast<const FunctionCall*>(&node)) {
         vector<string> args;
         for (const auto& arg : call->args) {
             args.push_back(emit(*arg));
         }
-        return rt::function_call(call->name, args);
+
+        // Handle qualified function call: module.func -> module::func
+        string func_name = call->name;
+        size_t dot_pos = func_name.find('.');
+
+        if (dot_pos != string::npos) {
+            func_name = func_name.substr(0, dot_pos) + "::" + func_name.substr(dot_pos + 1);
+        }
+
+        return rt::function_call(func_name, args);
     }
     if (auto* decl = dynamic_cast<const VariableDecl*>(&node)) {
         return rt::variable_decl(decl->type, decl->name, emit(*decl->value), decl->is_optional);
@@ -63,7 +77,16 @@ string CodeGen::emit(const ASTNode& node) {
         for (const auto& [name, value] : lit->field_values) {
             field_values.push_back({name, emit(*value)});
         }
-        return rt::struct_literal(lit->struct_name, field_values);
+
+        // Handle qualified struct name: module.Type -> module::Type
+        string struct_name = lit->struct_name;
+        size_t dot_pos = struct_name.find('.');
+
+        if (dot_pos != string::npos) {
+            struct_name = struct_name.substr(0, dot_pos) + "::" + struct_name.substr(dot_pos + 1);
+        }
+
+        return rt::struct_literal(struct_name, field_values);
     }
     if (auto* access = dynamic_cast<const FieldAccess*>(&node)) {
         // Handle self.field -> this->field in methods
@@ -107,6 +130,7 @@ string CodeGen::emit(const ASTNode& node) {
 string CodeGen::generate(const unique_ptr<Program>& program, bool test_mode) {
     this->test_mode = test_mode;
     this->current_program = program.get();
+    this->imported_modules.clear();
 
     if (test_mode) {
         return generate_test_harness(program);
@@ -122,6 +146,99 @@ string CodeGen::generate(const unique_ptr<Program>& program, bool test_mode) {
         out += generate_function(*fn);
     }
 
+    return out;
+}
+
+/**
+ * Generates C++ code for a program with imported modules.
+ * Imported modules are generated as C++ namespaces.
+ */
+string CodeGen::generate_with_imports(
+    const unique_ptr<Program>& program,
+    const map<string, const Module*>& imports,
+    bool test_mode
+) {
+    this->test_mode = test_mode;
+    this->current_program = program.get();
+    this->imported_modules = imports;
+
+    string out = "#include <iostream>\n#include <string>\n#include <cstdint>\n#include <optional>\n\n";
+
+    // Generate test harness infrastructure if in test mode
+    if (test_mode) {
+        out += "int _failures = 0;\n\n";
+        out += "template<typename T, typename U>\n";
+        out += "void _assert_eq(T a, U b, int line) {\n";
+        out += "\tif (a != b) {\n";
+        out += "\t\tstd::cerr << \"line \" << line << \": FAIL: \" << a << \" != \" << b << std::endl;\n";
+        out += "\t\t_failures++;\n";
+        out += "\t}\n";
+        out += "}\n\n";
+    }
+
+    // Generate namespaces for imported modules
+    for (const auto& [alias, mod] : imports) {
+        out += generate_module_namespace(alias, *mod);
+    }
+
+    // Generate structs from the main program
+    for (const auto& s : program->structs) {
+        out += generate_struct(*s) + "\n\n";
+    }
+
+    // Generate functions from the main program
+    for (const auto& fn : program->functions) {
+        out += generate_function(*fn);
+    }
+
+    // Generate test harness main if in test mode
+    if (test_mode) {
+        vector<string> test_names;
+
+        for (const auto& fn : program->functions) {
+            if (fn->name.rfind("test_", 0) == 0) {
+                test_names.push_back(fn->name);
+            }
+        }
+
+        out += "\nint main() {\n";
+
+        for (const auto& name : test_names) {
+            out += "\t" + name + "();\n";
+        }
+
+        out += "\treturn _failures;\n";
+        out += "}\n";
+    }
+
+    return out;
+}
+
+/**
+ * Generates a C++ namespace for an imported module.
+ * Only includes public structs and functions.
+ */
+string CodeGen::generate_module_namespace(const string& name, const Module& module) {
+    string out = "namespace " + name + " {\n\n";
+
+    // Save and set current program for method lookup
+    const Program* saved_program = current_program;
+    current_program = module.ast.get();
+
+    // Generate public structs
+    for (const auto* s : module.get_public_structs()) {
+        out += generate_struct(*s) + "\n\n";
+    }
+
+    // Generate public functions
+    for (const auto* f : module.get_public_functions()) {
+        out += generate_function(*f);
+    }
+
+    // Restore current program
+    current_program = saved_program;
+
+    out += "} // namespace " + name + "\n\n";
     return out;
 }
 
@@ -221,14 +338,25 @@ string CodeGen::generate_statement(const ASTNode& node) {
             }
             return rt::print_multi(args) + ";";
         }
+
         if (call->name == "assert_eq" && test_mode && call->args.size() >= 2) {
             return rt::assert_eq(emit(*call->args[0]), emit(*call->args[1]), call->line) + ";";
         }
+
         vector<string> args;
         for (const auto& arg : call->args) {
             args.push_back(emit(*arg));
         }
-        return rt::function_call(call->name, args) + ";";
+
+        // Handle qualified function call: module.func -> module::func
+        string func_name = call->name;
+        size_t dot_pos = func_name.find('.');
+
+        if (dot_pos != string::npos) {
+            func_name = func_name.substr(0, dot_pos) + "::" + func_name.substr(dot_pos + 1);
+        }
+
+        return rt::function_call(func_name, args) + ";";
     }
     if (auto* stmt = dynamic_cast<const IfStmt*>(&node)) {
         vector<string> then_body;

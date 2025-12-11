@@ -16,6 +16,7 @@
 #include <vector>
 #include <map>
 #include "ast.hpp"
+#include "module.hpp"
 
 using namespace std;
 
@@ -73,6 +74,13 @@ public:
     bool check(const Program& program, const string& filename);
 
     /**
+     * @brief Registers an imported module for cross-module type checking.
+     * @param alias The local alias for the module (e.g., "math" or "helpers")
+     * @param module The loaded module containing exported symbols
+     */
+    void register_module(const string& alias, const Module& module);
+
+    /**
      * @brief Returns all type errors found.
      * @return Vector of TypeError structs
      */
@@ -84,6 +92,7 @@ private:
     map<string, vector<const MethodDef*>> methods;  ///< Struct name -> its methods
     map<string, const FunctionDef*> functions;      ///< Function name -> definition
     map<string, TypeInfo> locals;                   ///< Local variable types in current scope
+    map<string, const Module*> imported_modules;    ///< Module alias -> module
 
     // Current context during checking
     string current_struct;     ///< Struct name when checking a method
@@ -113,4 +122,9 @@ private:
     const MethodDef* get_method(const string& struct_name, const string& method_name) const;  ///< Looks up method
     string get_field_type(const string& struct_name, const string& field_name) const;  ///< Gets type of struct field
     void error(const string& msg, int line);  ///< Records a type error
+
+    // Module-aware lookups
+    const FunctionDef* get_qualified_function(const string& module, const string& name) const;  ///< Looks up module.func
+    const StructDef* get_qualified_struct(const string& module, const string& name) const;      ///< Looks up module.Type
+    const MethodDef* get_qualified_method(const string& module, const string& struct_name, const string& method_name) const;  ///< Looks up module method
 };

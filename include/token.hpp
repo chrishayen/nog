@@ -29,6 +29,11 @@ enum class TokenType {
     WHILE,
     NONE,
     IS,
+    IMPORT,
+    PRIVATE,
+
+    // Annotations
+    AT,
 
     // Types
     TYPE_INT,

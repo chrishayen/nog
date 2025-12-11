@@ -29,6 +29,37 @@ struct ASTNode {
 };
 
 //------------------------------------------------------------------------------
+// Visibility - Controls access from other modules
+//------------------------------------------------------------------------------
+
+/** @brief Visibility modifier for declarations */
+enum class Visibility {
+    Public,   ///< Default - accessible from other modules
+    Private   ///< @private - only accessible within same module
+};
+
+//------------------------------------------------------------------------------
+// Imports - Module dependencies
+//------------------------------------------------------------------------------
+
+/** @brief Import statement: import math; or import utils.helpers; */
+struct ImportStmt : ASTNode {
+    string module_path;  ///< Full module path (e.g., "math" or "utils.helpers")
+    string alias;        ///< Local name (last component: "math" or "helpers")
+
+    explicit ImportStmt(const string& path) : module_path(path) {
+        // Extract alias from last dot-separated component
+        size_t last_dot = path.rfind('.');
+
+        if (last_dot != string::npos) {
+            alias = path.substr(last_dot + 1);
+        } else {
+            alias = path;
+        }
+    }
+};
+
+//------------------------------------------------------------------------------
 // Literals - Constant values in source code
 //------------------------------------------------------------------------------
 
@@ -63,6 +94,14 @@ struct NoneLiteral : ASTNode {};
 struct VariableRef : ASTNode {
     string name;
     explicit VariableRef(const string& n) : name(n) {}
+};
+
+/** @brief Qualified reference to an imported item: module.name (e.g., math.add) */
+struct QualifiedRef : ASTNode {
+    string module_name;  ///< Module alias (e.g., "math")
+    string name;         ///< Item name within module (e.g., "add")
+
+    QualifiedRef(const string& mod, const string& n) : module_name(mod), name(n) {}
 };
 
 //------------------------------------------------------------------------------
@@ -153,6 +192,7 @@ struct FunctionDef : ASTNode {
     vector<FunctionParam> params;         ///< Parameter list
     string return_type;                   ///< Return type (empty for void)
     vector<unique_ptr<ASTNode>> body;     ///< Function body statements
+    Visibility visibility = Visibility::Public;  ///< Access modifier
 };
 
 /** @brief Method definition: StructName :: method_name(self, params) -> ret_type { body } */
@@ -162,6 +202,7 @@ struct MethodDef : ASTNode {
     vector<FunctionParam> params;         ///< Includes self as first param
     string return_type;                   ///< Return type (empty for void)
     vector<unique_ptr<ASTNode>> body;     ///< Method body statements
+    Visibility visibility = Visibility::Public;  ///< Access modifier
 };
 
 //------------------------------------------------------------------------------
@@ -178,6 +219,7 @@ struct StructField {
 struct StructDef : ASTNode {
     string name;                  ///< Struct name
     vector<StructField> fields;   ///< List of fields
+    Visibility visibility = Visibility::Public;  ///< Access modifier
 };
 
 /** @brief Struct literal: TypeName { field: value, ... } */
@@ -198,6 +240,7 @@ struct FieldAccess : ASTNode {
 
 /** @brief The complete program: all structs, functions, and methods */
 struct Program : ASTNode {
+    vector<unique_ptr<ImportStmt>> imports;     ///< All import statements
     vector<unique_ptr<StructDef>> structs;      ///< All struct definitions
     vector<unique_ptr<FunctionDef>> functions;  ///< All function definitions
     vector<unique_ptr<MethodDef>> methods;      ///< All method definitions

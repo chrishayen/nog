@@ -26,6 +26,8 @@ static unordered_map<string, TokenType> keywords = {
     {"while", TokenType::WHILE},
     {"none", TokenType::NONE},
     {"is", TokenType::IS},
+    {"import", TokenType::IMPORT},
+    {"private", TokenType::PRIVATE},
     {"int", TokenType::TYPE_INT},
     {"str", TokenType::TYPE_STR},
     {"bool", TokenType::TYPE_BOOL},
@@ -231,6 +233,9 @@ vector<Token> Lexer::tokenize() {
             advance();
         } else if (current() == ';') {
             tokens.push_back({TokenType::SEMICOLON, ";", start_line});
+            advance();
+        } else if (current() == '@') {
+            tokens.push_back({TokenType::AT, "@", start_line});
             advance();
         } else if (current() == '"') {
             tokens.push_back(read_string());

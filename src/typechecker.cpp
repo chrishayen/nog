@@ -321,10 +321,58 @@ TypeInfo TypeChecker::infer_type(const ASTNode& expr) {
         return {"bool", false, false};
     }
 
+    if (auto* qref = dynamic_cast<const QualifiedRef*>(&expr)) {
+        // Qualified reference to a module item (e.g., math.PI)
+        const StructDef* s = get_qualified_struct(qref->module_name, qref->name);
+
+        if (s) {
+            return {qref->module_name + "." + qref->name, false, false};
+        }
+
+        error("undefined reference '" + qref->module_name + "." + qref->name + "'", qref->line);
+        return {"unknown", false, false};
+    }
+
     if (auto* call = dynamic_cast<const FunctionCall*>(&expr)) {
         // Built-in functions
         if (call->name == "assert_eq" || call->name == "print") {
             return {"void", false, true};
+        }
+
+        // Check for qualified function call (module.func)
+        size_t dot_pos = call->name.find('.');
+
+        if (dot_pos != string::npos) {
+            string module_name = call->name.substr(0, dot_pos);
+            string func_name = call->name.substr(dot_pos + 1);
+
+            const FunctionDef* func = get_qualified_function(module_name, func_name);
+
+            if (!func) {
+                error("undefined function '" + call->name + "'", call->line);
+                return {"unknown", false, false};
+            }
+
+            // Check argument count
+            if (call->args.size() != func->params.size()) {
+                error("function '" + call->name + "' expects " + to_string(func->params.size()) + " arguments, got " + to_string(call->args.size()), call->line);
+            }
+
+            // Check argument types
+            for (size_t i = 0; i < call->args.size() && i < func->params.size(); i++) {
+                TypeInfo arg_type = infer_type(*call->args[i]);
+                TypeInfo param_type = {func->params[i].type, false, false};
+
+                if (!types_compatible(param_type, arg_type)) {
+                    error("argument " + to_string(i + 1) + " of function '" + call->name + "' expects '" + param_type.base_type + "', got '" + arg_type.base_type + "'", call->line);
+                }
+            }
+
+            if (func->return_type.empty()) {
+                return {"void", false, true};
+            }
+
+            return {func->return_type, false, false};
         }
 
         if (functions.find(call->name) == functions.end()) {
@@ -359,14 +407,27 @@ TypeInfo TypeChecker::infer_type(const ASTNode& expr) {
     if (auto* mcall = dynamic_cast<const MethodCall*>(&expr)) {
         TypeInfo obj_type = infer_type(*mcall->object);
 
-        // Check object is a struct
-        if (structs.find(obj_type.base_type) == structs.end()) {
+        // Check object is a struct (using get_struct to handle qualified types)
+        const StructDef* sdef = get_struct(obj_type.base_type);
+
+        if (!sdef) {
             error("cannot call method on non-struct type '" + obj_type.base_type + "'", mcall->line);
             return {"unknown", false, false};
         }
 
-        // Find the method
-        const MethodDef* method = get_method(obj_type.base_type, mcall->method_name);
+        // Find the method - check if it's a qualified type (module.Type)
+        const MethodDef* method = nullptr;
+        size_t dot_pos = obj_type.base_type.find('.');
+
+        if (dot_pos != string::npos) {
+            // Qualified type - look up in module
+            string module_name = obj_type.base_type.substr(0, dot_pos);
+            string struct_name = obj_type.base_type.substr(dot_pos + 1);
+            method = get_qualified_method(module_name, struct_name, mcall->method_name);
+        } else {
+            // Local type
+            method = get_method(obj_type.base_type, mcall->method_name);
+        }
 
         if (!method) {
             error("method '" + mcall->method_name + "' not found on struct '" + obj_type.base_type + "'", mcall->line);
@@ -400,32 +461,44 @@ TypeInfo TypeChecker::infer_type(const ASTNode& expr) {
     if (auto* access = dynamic_cast<const FieldAccess*>(&expr)) {
         TypeInfo obj_type = infer_type(*access->object);
 
-        if (structs.find(obj_type.base_type) == structs.end()) {
+        // Use get_struct to handle qualified types
+        const StructDef* sdef = get_struct(obj_type.base_type);
+
+        if (!sdef) {
             error("cannot access field on non-struct type '" + obj_type.base_type + "'", access->line);
             return {"unknown", false, false};
         }
 
-        string field_type = get_field_type(obj_type.base_type, access->field_name);
-
-        if (field_type.empty()) {
-            error("struct '" + obj_type.base_type + "' has no field '" + access->field_name + "'", access->line);
-            return {"unknown", false, false};
+        // Look up field directly on the struct definition
+        for (const auto& field : sdef->fields) {
+            if (field.name == access->field_name) {
+                return {field.type, false, false};
+            }
         }
 
-        return {field_type, false, false};
+        error("struct '" + obj_type.base_type + "' has no field '" + access->field_name + "'", access->line);
+        return {"unknown", false, false};
     }
 
     if (auto* lit = dynamic_cast<const StructLiteral*>(&expr)) {
-        if (structs.find(lit->struct_name) == structs.end()) {
+        const StructDef* sdef = get_struct(lit->struct_name);
+
+        if (!sdef) {
             error("unknown struct '" + lit->struct_name + "'", lit->line);
             return {"unknown", false, false};
         }
 
         // Validate field values
-        const StructDef* sdef = structs[lit->struct_name];
-
         for (const auto& [field_name, field_val] : lit->field_values) {
-            string expected_type = get_field_type(lit->struct_name, field_name);
+            // Find field in struct definition
+            string expected_type;
+
+            for (const auto& f : sdef->fields) {
+                if (f.name == field_name) {
+                    expected_type = f.type;
+                    break;
+                }
+            }
 
             if (expected_type.empty()) {
                 error("struct '" + lit->struct_name + "' has no field '" + field_name + "'", lit->line);
@@ -456,10 +529,27 @@ bool TypeChecker::is_primitive_type(const string& type) const {
 }
 
 /**
- * Checks if a type is valid (either a primitive or a known struct).
+ * Checks if a type is valid (either a primitive, a known struct, or a qualified module type).
  */
 bool TypeChecker::is_valid_type(const string& type) const {
-    return is_primitive_type(type) || structs.find(type) != structs.end();
+    if (is_primitive_type(type)) {
+        return true;
+    }
+
+    if (structs.find(type) != structs.end()) {
+        return true;
+    }
+
+    // Check for qualified type (module.Type)
+    size_t dot_pos = type.find('.');
+
+    if (dot_pos != string::npos) {
+        string module_name = type.substr(0, dot_pos);
+        string type_name = type.substr(dot_pos + 1);
+        return get_qualified_struct(module_name, type_name) != nullptr;
+    }
+
+    return false;
 }
 
 /**
@@ -482,12 +572,22 @@ bool TypeChecker::types_compatible(const TypeInfo& expected, const TypeInfo& act
 
 /**
  * Looks up a struct definition by name. Returns nullptr if not found.
+ * Handles both local structs and qualified module types (module.Type).
  */
 const StructDef* TypeChecker::get_struct(const string& name) const {
     auto it = structs.find(name);
 
     if (it != structs.end()) {
         return it->second;
+    }
+
+    // Check for qualified type (module.Type)
+    size_t dot_pos = name.find('.');
+
+    if (dot_pos != string::npos) {
+        string module_name = name.substr(0, dot_pos);
+        string type_name = name.substr(dot_pos + 1);
+        return get_qualified_struct(module_name, type_name);
     }
 
     return nullptr;
@@ -536,4 +636,71 @@ string TypeChecker::get_field_type(const string& struct_name, const string& fiel
  */
 void TypeChecker::error(const string& msg, int line) {
     errors.push_back({msg, line, filename});
+}
+
+/**
+ * Registers an imported module for cross-module type checking.
+ */
+void TypeChecker::register_module(const string& alias, const Module& module) {
+    imported_modules[alias] = &module;
+}
+
+/**
+ * Looks up a function in an imported module by module alias and function name.
+ * Returns nullptr if the module or function is not found, or if the function is private.
+ */
+const FunctionDef* TypeChecker::get_qualified_function(const string& module, const string& name) const {
+    auto it = imported_modules.find(module);
+
+    if (it == imported_modules.end()) {
+        return nullptr;
+    }
+
+    for (const auto* func : it->second->get_public_functions()) {
+        if (func->name == name) {
+            return func;
+        }
+    }
+
+    return nullptr;
+}
+
+/**
+ * Looks up a struct in an imported module by module alias and struct name.
+ * Returns nullptr if the module or struct is not found, or if the struct is private.
+ */
+const StructDef* TypeChecker::get_qualified_struct(const string& module, const string& name) const {
+    auto it = imported_modules.find(module);
+
+    if (it == imported_modules.end()) {
+        return nullptr;
+    }
+
+    for (const auto* s : it->second->get_public_structs()) {
+        if (s->name == name) {
+            return s;
+        }
+    }
+
+    return nullptr;
+}
+
+/**
+ * Looks up a method on a struct in an imported module.
+ * Returns nullptr if not found or if private.
+ */
+const MethodDef* TypeChecker::get_qualified_method(const string& module, const string& struct_name, const string& method_name) const {
+    auto it = imported_modules.find(module);
+
+    if (it == imported_modules.end()) {
+        return nullptr;
+    }
+
+    for (const auto* m : it->second->get_public_methods(struct_name)) {
+        if (m->name == method_name) {
+            return m;
+        }
+    }
+
+    return nullptr;
 }

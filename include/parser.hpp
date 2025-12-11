@@ -22,15 +22,17 @@ using namespace std;
  * Expression parsing uses precedence climbing for operators.
  *
  * Grammar overview:
- *   program     -> (function | struct | method)*
- *   function    -> "fn" IDENT "(" params ")" ("->" type)? "{" statements "}"
- *   struct      -> IDENT "::" "struct" "{" fields "}"
- *   method      -> IDENT "::" IDENT "(" params ")" ("->" type)? "{" statements "}"
+ *   program     -> import* (function | struct | method)*
+ *   import      -> "import" module_path ";"
+ *   function    -> visibility? "fn" IDENT "(" params ")" ("->" type)? "{" statements "}"
+ *   struct      -> visibility? IDENT "::" "struct" "{" fields "}"
+ *   method      -> visibility? IDENT "::" IDENT "(" params ")" ("->" type)? "{" statements "}"
+ *   visibility  -> "@private"
  *   statement   -> var_decl | assignment | return | if | while | call
  *   expression  -> comparison
  *   comparison  -> additive (("==" | "!=" | ...) additive)*
  *   additive    -> primary (("+" | "-" | "*" | "/") primary)*
- *   primary     -> literal | IDENT | call | struct_literal | "(" expression ")"
+ *   primary     -> literal | IDENT | qualified_ref | call | struct_literal | "(" expression ")"
  */
 class Parser {
 public:
@@ -51,6 +53,7 @@ private:
     vector<Token> tokens;          ///< Token stream to parse
     size_t pos = 0;                ///< Current position in tokens
     vector<string> struct_names;   ///< Known struct names for type resolution
+    vector<string> imported_modules;  ///< Imported module aliases for qualified reference resolution
 
     // Token navigation
     Token current();               ///< Returns current token
@@ -60,9 +63,12 @@ private:
     void advance();                ///< Moves to next token
 
     // Definition parsing
-    unique_ptr<FunctionDef> parse_function();                              ///< Parses fn definition
-    unique_ptr<StructDef> parse_struct_def(const string& name);            ///< Parses struct definition
-    unique_ptr<MethodDef> parse_method_def(const string& struct_name, int line);  ///< Parses method definition
+    unique_ptr<ImportStmt> parse_import();                                 ///< Parses import statement
+    Visibility parse_visibility();                                         ///< Parses @private annotation
+    unique_ptr<FunctionDef> parse_function(Visibility vis);                ///< Parses fn definition
+    unique_ptr<StructDef> parse_struct_def(const string& name, Visibility vis);  ///< Parses struct definition
+    unique_ptr<MethodDef> parse_method_def(const string& struct_name, int line, Visibility vis);  ///< Parses method definition
+    bool is_imported_module(const string& name);                           ///< Checks if name is an imported module
 
     // Statement parsing
     unique_ptr<ASTNode> parse_statement();         ///< Parses any statement

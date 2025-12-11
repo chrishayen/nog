@@ -17,6 +17,8 @@
 #include "parser.hpp"
 #include "codegen.hpp"
 #include "typechecker.hpp"
+#include "project.hpp"
+#include "module.hpp"
 
 using namespace std;
 namespace fs = filesystem;
@@ -38,8 +40,8 @@ string read_file(const string& path) {
 
 /**
  * Transpiles Nog source to C++ code.
- * Runs lexer -> parser -> type checker -> code generator pipeline.
- * Returns empty string and prints errors if type checking fails.
+ * Runs lexer -> parser -> module loading -> type checker -> code generator pipeline.
+ * Returns empty string and prints errors if type checking or module loading fails.
  */
 string transpile(const string& source, const string& filename, bool test_mode) {
     Lexer lexer(source);
@@ -47,7 +49,40 @@ string transpile(const string& source, const string& filename, bool test_mode) {
     Parser parser(tokens);
     auto ast = parser.parse();
 
+    // Find project configuration (for module resolution)
+    auto config = find_project(fs::path(filename));
+
+    // Load imported modules if we have a project config
+    map<string, const Module*> imports;
+    unique_ptr<ModuleManager> module_manager;
+
+    if (config && !ast->imports.empty()) {
+        module_manager = make_unique<ModuleManager>(*config);
+
+        for (const auto& imp : ast->imports) {
+            const Module* mod = module_manager->load_module(imp->module_path);
+
+            if (!mod) {
+                for (const auto& err : module_manager->get_errors()) {
+                    cerr << filename << ": error: " << err << endl;
+                }
+
+                return "";
+            }
+
+            imports[imp->alias] = mod;
+        }
+    } else if (!ast->imports.empty()) {
+        cerr << filename << ": error: imports require a nog.toml file (run 'nog init')" << endl;
+        return "";
+    }
+
+    // Type check with imports
     TypeChecker checker;
+
+    for (const auto& [alias, mod] : imports) {
+        checker.register_module(alias, *mod);
+    }
 
     if (!checker.check(*ast, filename)) {
         for (const auto& err : checker.get_errors()) {
@@ -57,8 +92,14 @@ string transpile(const string& source, const string& filename, bool test_mode) {
         return "";
     }
 
+    // Generate code with imports
     CodeGen codegen;
-    return codegen.generate(ast, test_mode);
+
+    if (imports.empty()) {
+        return codegen.generate(ast, test_mode);
+    }
+
+    return codegen.generate_with_imports(ast, imports, test_mode);
 }
 
 /**
@@ -131,14 +172,44 @@ int run_tests(const string& path) {
 }
 
 /**
+ * Initializes a new Nog project by creating a nog.toml file.
+ * Uses the directory name as the project name.
+ */
+int init_project(const string& path) {
+    fs::path project_path = path.empty() ? fs::current_path() : fs::path(path);
+
+    if (!fs::is_directory(project_path)) {
+        cerr << "Error: " << project_path << " is not a directory" << endl;
+        return 1;
+    }
+
+    if (create_init_file(project_path)) {
+        cout << "Initialized project '" << project_path.filename().string() << "'" << endl;
+        return 0;
+    }
+
+    fs::path init_file = project_path / "nog.toml";
+
+    if (fs::exists(init_file)) {
+        cerr << "Error: nog.toml already exists" << endl;
+    } else {
+        cerr << "Error: Could not create nog.toml" << endl;
+    }
+
+    return 1;
+}
+
+/**
  * Main entry point. Usage:
  *   nog <source.n>   - Transpile to C++ and print to stdout
  *   nog test <path>  - Run tests in directory or single file
+ *   nog init [path]  - Initialize a new project
  */
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         cerr << "Usage: nog <source.n>" << endl;
         cerr << "       nog test <path>" << endl;
+        cerr << "       nog init [path]" << endl;
         return 1;
     }
 
@@ -147,6 +218,11 @@ int main(int argc, char* argv[]) {
     if (cmd == "test") {
         string path = argc >= 3 ? argv[2] : "tests/";
         return run_tests(path);
+    }
+
+    if (cmd == "init") {
+        string path = argc >= 3 ? argv[2] : "";
+        return init_project(path);
     }
 
     string source = read_file(cmd);

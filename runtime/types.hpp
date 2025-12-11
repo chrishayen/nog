@@ -15,6 +15,7 @@ namespace nog::runtime {
 /**
  * Maps a Nog type name to its C++ equivalent.
  * Returns the input unchanged if it's a user-defined type (struct).
+ * Handles qualified types (module.Type -> module::Type).
  */
 inline string map_type(const string& t) {
     if (t == "int") return "int";
@@ -26,6 +27,14 @@ inline string map_type(const string& t) {
     if (t == "u32") return "uint32_t";
     if (t == "u64") return "uint64_t";
     if (t.empty()) return "void";
+
+    // Handle qualified types: module.Type -> module::Type
+    size_t dot_pos = t.find('.');
+
+    if (dot_pos != string::npos) {
+        return t.substr(0, dot_pos) + "::" + t.substr(dot_pos + 1);
+    }
+
     return t;
 }
 
