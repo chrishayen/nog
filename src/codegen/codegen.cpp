@@ -6,6 +6,56 @@
  * helper functions (nog::runtime) to generate idiomatic C++ output.
  */
 
+/**
+ * @nog_fn print
+ * @module builtins
+ * @description Prints values to standard output, followed by a newline.
+ * @param args ... - One or more values to print (separated by spaces)
+ * @example
+ * print("Hello, World!");
+ * print("x =", x, "y =", y);
+ */
+
+/**
+ * @nog_fn assert_eq
+ * @module builtins
+ * @description Asserts that two values are equal. Only available in test mode.
+ * @param expected T - The expected value
+ * @param actual T - The actual value to compare
+ * @note Fails the test with line number and values if not equal
+ * @example
+ * assert_eq(5, add(2, 3));
+ * assert_eq("hello", greet());
+ */
+
+/**
+ * @nog_struct Channel
+ * @module builtins
+ * @description A typed channel for communication between async functions.
+ * @example
+ * ch := Channel<int>();
+ * await ch.send(42);
+ * val := await ch.recv();
+ */
+
+/**
+ * @nog_method send
+ * @type Channel
+ * @async
+ * @description Sends a value through the channel.
+ * @param value T - The value to send
+ * @example await ch.send(42);
+ */
+
+/**
+ * @nog_method recv
+ * @type Channel
+ * @async
+ * @description Receives a value from the channel.
+ * @returns T - The received value
+ * @example val := await ch.recv();
+ */
+
 #include "codegen.hpp"
 #include "emit/runtime.hpp"
 #include "stdlib/http.hpp"

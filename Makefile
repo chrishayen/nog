@@ -1,4 +1,4 @@
-.PHONY: all build clean test run configure rebuild install
+.PHONY: all build clean test run configure rebuild install docs
 
 BUILD_DIR := build
 
@@ -35,3 +35,6 @@ install: build
 	@echo "Installed nog to ~/.local/bin/"
 	@echo "Installed runtime libraries to ~/.local/lib/nog/"
 	@echo "Installed headers to ~/.local/include/"
+
+docs: build
+	@$(BUILD_DIR)/docgen src/ docs/reference/

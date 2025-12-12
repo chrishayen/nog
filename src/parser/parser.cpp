@@ -88,8 +88,26 @@ string Parser::token_to_type(TokenType type) {
 }
 
 /**
- * Parses an import statement: import module.path;
- * Returns the module path with dots preserved.
+ * @nog_syntax import
+ * @category Imports
+ * @order 1
+ * @description Import a module to use its types and functions.
+ * @syntax import module_name;
+ * @example
+ * import http;
+ * import myproject.utils;
+ * @note Use dot notation for nested modules
+ */
+
+/**
+ * @nog_syntax Qualified Access
+ * @category Imports
+ * @order 2
+ * @description Access imported module members with dot notation.
+ * @syntax module.member
+ * @example
+ * resp := http.text("Hello");
+ * result := utils.helper();
  */
 unique_ptr<ImportStmt> Parser::parse_import() {
     consume(TokenType::IMPORT);
@@ -259,8 +277,27 @@ unique_ptr<Program> Parser::parse() {
 }
 
 /**
- * Parses a struct definition: Name :: struct { field type, ... }
- * Registers the struct name for later type resolution.
+ * @nog_syntax Struct Definition
+ * @category Structs
+ * @order 1
+ * @description Define a custom data structure.
+ * @syntax Name :: struct { field type, ... }
+ * @example
+ * Person :: struct {
+ *     name str,
+ *     age int
+ * }
+ */
+
+/**
+ * @nog_syntax Field Access
+ * @category Structs
+ * @order 3
+ * @description Access or modify struct fields using dot notation.
+ * @syntax instance.field
+ * @example
+ * name := p.name;
+ * p.age = 33;
  */
 unique_ptr<StructDef> Parser::parse_struct_def(const string& name, Visibility vis) {
     consume(TokenType::STRUCT);
@@ -385,8 +422,22 @@ string Parser::parse_type() {
 }
 
 /**
- * Collects consecutive doc comment tokens into a single string.
- * Multiple /// lines are joined with newlines.
+ * @nog_syntax Doc Comments
+ * @category Visibility
+ * @order 2
+ * @description Document functions, structs, and fields with /// comments.
+ * @syntax /// description
+ * @example
+ * /// This is a doc comment for the function
+ * fn add(int a, int b) -> int {
+ *     return a + b;
+ * }
+ *
+ * /// Doc comment for struct
+ * Person :: struct {
+ *     /// Doc comment for field
+ *     name str
+ * }
  */
 string Parser::collect_doc_comments() {
     string doc;
@@ -403,8 +454,42 @@ string Parser::collect_doc_comments() {
 }
 
 /**
- * Parses a method definition: StructName :: method_name(self, params) -> type { body }
- * The first parameter must be 'self', which becomes implicit 'this' in generated C++.
+ * @nog_syntax Method Definition
+ * @category Methods
+ * @order 1
+ * @description Define a method on a struct type.
+ * @syntax Type :: name(self, params) -> return_type { }
+ * @example
+ * Person :: get_name(self) -> str {
+ *     return self.name;
+ * }
+ *
+ * Person :: greet(self, str greeting) -> str {
+ *     return greeting + ", " + self.name;
+ * }
+ */
+
+/**
+ * @nog_syntax Method Call
+ * @category Methods
+ * @order 2
+ * @description Call a method on a struct instance.
+ * @syntax instance.method(args)
+ * @example
+ * name := p.get_name();
+ * msg := p.greet("Hello");
+ */
+
+/**
+ * @nog_syntax async method
+ * @category Async
+ * @order 3
+ * @description Declare an asynchronous method on a struct.
+ * @syntax async Type :: name(self, params) -> return_type { }
+ * @example
+ * async Counter :: get_value(self) -> int {
+ *     return self.value;
+ * }
  */
 unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int line, Visibility vis, bool is_async) {
     // We're past "Name ::", now at method_name
@@ -462,8 +547,64 @@ unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int li
 }
 
 /**
- * Parses a function definition: fn name(type param, ...) -> return_type { body }
- * Or async fn for async functions.
+ * @nog_syntax Function Declaration
+ * @category Functions
+ * @order 1
+ * @description Declare a function with parameters and return type.
+ * @syntax fn name(type param, ...) -> return_type { }
+ * @example
+ * fn add(int a, int b) -> int {
+ *     return a + b;
+ * }
+ */
+
+/**
+ * @nog_syntax Void Function
+ * @category Functions
+ * @order 2
+ * @description Function with no return type (void).
+ * @syntax fn name(params) { }
+ * @example
+ * fn greet(str name) {
+ *     print("Hello, " + name);
+ * }
+ */
+
+/**
+ * @nog_syntax Function References
+ * @category Functions
+ * @order 3
+ * @description Pass functions as arguments to other functions.
+ * @syntax fn(param_types) -> return_type
+ * @example
+ * fn apply_op(int x, int y, fn(int, int) -> int op) -> int {
+ *     return op(x, y);
+ * }
+ * result := apply_op(3, 4, add);
+ */
+
+/**
+ * @nog_syntax async fn
+ * @category Async
+ * @order 1
+ * @description Declare an asynchronous function.
+ * @syntax async fn name(params) -> return_type { }
+ * @example
+ * async fn fetch_data() -> int {
+ *     return 42;
+ * }
+ */
+
+/**
+ * @nog_syntax @private
+ * @category Visibility
+ * @order 1
+ * @description Mark a function or struct as private to its module.
+ * @syntax @private fn/struct
+ * @example
+ * @private fn internal_helper() { }
+ * @private MyStruct :: struct { }
+ * @note Private members are not exported when the module is imported
  */
 unique_ptr<FunctionDef> Parser::parse_function(Visibility vis, bool is_async) {
     consume(TokenType::FN);
@@ -692,7 +833,15 @@ unique_ptr<ASTNode> Parser::parse_statement() {
 }
 
 /**
- * Parses a typed variable declaration: type name = expr; or type? name = expr;
+ * @nog_syntax Explicit Declaration
+ * @category Variables
+ * @order 1
+ * @description Declare a variable with an explicit type.
+ * @syntax type name = expr;
+ * @example
+ * int x = 42;
+ * str name = "Chris";
+ * bool flag = true;
  */
 unique_ptr<VariableDecl> Parser::parse_variable_decl() {
     auto decl = make_unique<VariableDecl>();
@@ -710,8 +859,15 @@ unique_ptr<VariableDecl> Parser::parse_variable_decl() {
 }
 
 /**
- * Parses an inferred variable declaration: name := expr;
- * Type is inferred from the initializer expression.
+ * @nog_syntax Type Inference
+ * @category Variables
+ * @order 2
+ * @description Declare a variable with inferred type using :=.
+ * @syntax name := expr;
+ * @example
+ * x := 100;
+ * name := "Hello";
+ * pi := 3.14;
  */
 unique_ptr<VariableDecl> Parser::parse_inferred_decl() {
     auto decl = make_unique<VariableDecl>();
@@ -734,7 +890,17 @@ unique_ptr<ReturnStmt> Parser::parse_return() {
 }
 
 /**
- * Parses an if statement with optional else: if condition { then } else { else }
+ * @nog_syntax if
+ * @category Control Flow
+ * @order 1
+ * @description Conditional branching with if and optional else.
+ * @syntax if condition { ... } else { ... }
+ * @example
+ * if x > 10 {
+ *     print("big");
+ * } else {
+ *     print("small");
+ * }
  */
 unique_ptr<IfStmt> Parser::parse_if() {
     consume(TokenType::IF);
@@ -766,7 +932,17 @@ unique_ptr<IfStmt> Parser::parse_if() {
 }
 
 /**
- * Parses a while loop: while condition { body }
+ * @nog_syntax while
+ * @category Control Flow
+ * @order 2
+ * @description Loop while a condition is true.
+ * @syntax while condition { ... }
+ * @example
+ * i := 0;
+ * while i < 5 {
+ *     print(i);
+ *     i = i + 1;
+ * }
  */
 unique_ptr<WhileStmt> Parser::parse_while() {
     consume(TokenType::WHILE);
@@ -786,8 +962,20 @@ unique_ptr<WhileStmt> Parser::parse_while() {
 }
 
 /**
- * Parses a select statement: select { case val := ch.recv() { body } ... }
- * Each case is either a recv with optional binding or a send operation.
+ * @nog_syntax select
+ * @category Channels
+ * @order 4
+ * @description Wait on multiple channel operations.
+ * @syntax select { case val := ch.recv() { ... } }
+ * @example
+ * select {
+ *     case val := ch1.recv() {
+ *         x := val + 1;
+ *     }
+ *     case val := ch2.recv() {
+ *         x := val + 2;
+ *     }
+ * }
  */
 unique_ptr<SelectStmt> Parser::parse_select() {
     int start_line = current().line;
@@ -933,7 +1121,26 @@ unique_ptr<ASTNode> Parser::parse_additive() {
 }
 
 /**
- * Parses primary expressions: literals, identifiers, function calls, struct literals, await.
+ * @nog_syntax await
+ * @category Async
+ * @order 3
+ * @description Await an async operation.
+ * @syntax await expr
+ * @example
+ * result := await fetch_data();
+ * await ch.send(42);
+ * val := await ch.recv();
+ */
+
+/**
+ * @nog_syntax Channel Creation
+ * @category Channels
+ * @order 1
+ * @description Create a typed channel for communication between async tasks.
+ * @syntax Channel<type>()
+ * @example
+ * ch := Channel<int>();
+ * ch_str := Channel<str>();
  */
 unique_ptr<ASTNode> Parser::parse_primary() {
     // Handle await expression: await expr
@@ -1164,7 +1371,14 @@ unique_ptr<ASTNode> Parser::parse_postfix(unique_ptr<ASTNode> left) {
 }
 
 /**
- * Parses a struct literal: TypeName { field: value, field: value }
+ * @nog_syntax Struct Instantiation
+ * @category Structs
+ * @order 2
+ * @description Create an instance of a struct.
+ * @syntax TypeName { field: value, field: value }
+ * @example
+ * p := Person { name: "Chris", age: 32 };
+ * req := http.Request { method: "GET", path: "/", body: "" };
  */
 unique_ptr<StructLiteral> Parser::parse_struct_literal(const string& name) {
     consume(TokenType::LBRACE);

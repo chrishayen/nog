@@ -6,6 +6,116 @@
  * The actual runtime is in src/runtime/http/http.hpp and linked as a library.
  */
 
+/**
+ * @nog_struct Request
+ * @module http
+ * @description Represents an incoming HTTP request.
+ * @field method str - HTTP method (GET, POST, PUT, DELETE, etc.)
+ * @field path str - Request path (e.g., "/users/123")
+ * @field body str - Request body content
+ * @example
+ * async fn handle(http.Request req) -> http.Response {
+ *     if req.method == "POST" {
+ *         return http.text("Received: " + req.body);
+ *     }
+ *     return http.not_found();
+ * }
+ */
+
+/**
+ * @nog_struct Response
+ * @module http
+ * @description Represents an HTTP response to send back to the client.
+ * @field status int - HTTP status code (200, 404, 500, etc.)
+ * @field content_type str - Content-Type header value
+ * @field body str - Response body content
+ * @example
+ * resp := http.Response { status: 200, content_type: "text/html", body: "<h1>Hello</h1>" };
+ */
+
+/**
+ * @nog_struct App
+ * @module http
+ * @description HTTP application with routing support.
+ * @example
+ * app := http.App {};
+ * app.get("/", home_handler);
+ * app.post("/submit", submit_handler);
+ * await app.listen(8080);
+ */
+
+/**
+ * @nog_fn text
+ * @module http
+ * @description Creates a 200 OK response with text/plain content type.
+ * @param content str - Response body text
+ * @returns http.Response - A text response
+ * @example return http.text("Hello, World!");
+ */
+
+/**
+ * @nog_fn json
+ * @module http
+ * @description Creates a 200 OK response with application/json content type.
+ * @param content str - JSON string to send
+ * @returns http.Response - A JSON response
+ * @example return http.json("{\"status\": \"ok\"}");
+ */
+
+/**
+ * @nog_fn not_found
+ * @module http
+ * @description Creates a 404 Not Found response.
+ * @returns http.Response - A 404 response
+ * @example
+ * if path == "/unknown" {
+ *     return http.not_found();
+ * }
+ */
+
+/**
+ * @nog_fn serve
+ * @module http
+ * @async
+ * @description Starts an HTTP server on the specified port with a single handler function.
+ * @param port int - Port number to listen on
+ * @param handler fn(http.Request) -> http.Response - Handler function for all requests
+ * @example
+ * async fn handle(http.Request req) -> http.Response {
+ *     return http.text("Hello!");
+ * }
+ * await http.serve(8080, handle);
+ */
+
+/**
+ * @nog_method get
+ * @type http.App
+ * @description Registers a handler for GET requests at the specified path.
+ * @param path str - URL path to match
+ * @param handler fn(http.Request) -> http.Response - Handler function
+ * @example
+ * app.get("/", home);
+ * app.get("/about", about);
+ */
+
+/**
+ * @nog_method post
+ * @type http.App
+ * @description Registers a handler for POST requests at the specified path.
+ * @param path str - URL path to match
+ * @param handler fn(http.Request) -> http.Response - Handler function
+ * @example app.post("/submit", handle_submit);
+ */
+
+/**
+ * @nog_method listen
+ * @type http.App
+ * @async
+ * @description Starts the HTTP server and begins listening for requests.
+ * @param port int - Port number to listen on
+ * @example await app.listen(8080);
+ */
+
 #include "http.hpp"
 
 using namespace std;

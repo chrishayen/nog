@@ -61,3 +61,7 @@ add_custom_command(TARGET nog_http_headers POST_BUILD
         ${CMAKE_BINARY_DIR}/lib/
     COMMENT "Copying llhttp library"
 )
+
+# Documentation generator tool
+add_executable(docgen tools/docgen.cpp)
+target_compile_features(docgen PRIVATE cxx_std_23)
