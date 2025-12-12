@@ -1,0 +1,32 @@
+// Static File Server
+// Run with: nog run examples/serve.n
+// Then open http://localhost:8080 in your browser
+// Serves files from the current directory
+
+import http;
+import fs;
+
+async fn handle(http.Request req) -> http.Response {
+    path := "." + req.path;
+
+    if path == "./" {
+        path = "./index.html";
+    }
+
+    if !fs.exists(path) {
+        return http.not_found();
+    }
+
+    if fs.is_dir(path) {
+        return http.not_found();
+    }
+
+    content := fs.read_file(path);
+    print(content);
+    return http.text(content);
+}
+
+async fn main() {
+    print("Serving files from current directory on http://localhost:8080");
+    await http.serve(8080, handle);
+}

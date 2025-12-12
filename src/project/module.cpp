@@ -10,6 +10,7 @@
 #include "lexer/lexer.hpp"
 #include "parser/parser.hpp"
 #include "stdlib/http.hpp"
+#include "stdlib/fs.hpp"
 #include <fstream>
 #include <sstream>
 
@@ -166,6 +167,8 @@ unique_ptr<Module> ModuleManager::create_builtin_module(const string& name) {
 
     if (name == "http") {
         mod->ast = nog::stdlib::create_http_module();
+    } else if (name == "fs") {
+        mod->ast = nog::stdlib::create_fs_module();
     } else {
         return nullptr;
     }

@@ -1143,6 +1143,16 @@ unique_ptr<ASTNode> Parser::parse_additive() {
  * ch_str := Channel<str>();
  */
 unique_ptr<ASTNode> Parser::parse_primary() {
+    // Handle NOT expression: !expr
+    if (check(TokenType::NOT)) {
+        int start_line = current().line;
+        advance();
+        auto not_expr = make_unique<NotExpr>();
+        not_expr->value = parse_primary();
+        not_expr->line = start_line;
+        return not_expr;
+    }
+
     // Handle await expression: await expr
     if (check(TokenType::AWAIT)) {
         advance();

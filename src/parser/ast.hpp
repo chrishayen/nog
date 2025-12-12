@@ -126,6 +126,11 @@ struct IsNone : ASTNode {
     unique_ptr<ASTNode> value;  ///< The optional value to check
 };
 
+/** @brief Logical NOT expression: !expr */
+struct NotExpr : ASTNode {
+    unique_ptr<ASTNode> value;  ///< The expression to negate
+};
+
 /** @brief Await expression: await expr */
 struct AwaitExpr : ASTNode {
     unique_ptr<ASTNode> value;  ///< The awaitable expression

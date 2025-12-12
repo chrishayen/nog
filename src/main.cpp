@@ -64,6 +64,13 @@ bool uses_http_module(const string& source) {
 }
 
 /**
+ * Checks if source code imports the fs module.
+ */
+bool uses_fs_module(const string& source) {
+    return source.find("import fs") != string::npos;
+}
+
+/**
  * Builds the g++ compile command with appropriate flags.
  * Adds runtime libraries when http module is used.
  *

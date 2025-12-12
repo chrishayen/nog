@@ -126,7 +126,7 @@ namespace nog::stdlib {
  * Checks if a module name is a built-in stdlib module.
  */
 bool is_builtin_module(const string& name) {
-    return name == "http";
+    return name == "http" || name == "fs";
 }
 
 /**

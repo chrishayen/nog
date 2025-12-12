@@ -402,6 +402,16 @@ TypeInfo TypeChecker::infer_type(const ASTNode& expr) {
         return {"bool", false, false};
     }
 
+    if (auto* not_expr = dynamic_cast<const NotExpr*>(&expr)) {
+        TypeInfo inner_type = infer_type(*not_expr->value);
+
+        if (inner_type.base_type != "bool") {
+            error("'!' operator requires bool, got '" + inner_type.base_type + "'", not_expr->line);
+        }
+
+        return {"bool", false, false};
+    }
+
     if (auto* await_expr = dynamic_cast<const AwaitExpr*>(&expr)) {
         // Await can only be used inside async functions/methods
         if (!in_async_context) {

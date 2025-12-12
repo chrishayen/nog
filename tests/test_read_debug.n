@@ -1,0 +1,6 @@
+import fs;
+
+fn test_read_file_debug() {
+    content := fs.read_file("CLAUDE.md");
+    print("Length:", content.length());
+}

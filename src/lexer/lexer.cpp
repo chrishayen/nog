@@ -241,7 +241,8 @@ vector<Token> Lexer::tokenize() {
                 advance();
                 advance();
             } else {
-                advance(); // skip unknown for now
+                tokens.push_back({TokenType::NOT, "!", start_line});
+                advance();
             }
         } else if (current() == '<') {
             if (peek() == '=') {

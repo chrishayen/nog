@@ -59,6 +59,7 @@
 #include "codegen.hpp"
 #include "emit/runtime.hpp"
 #include "stdlib/http.hpp"
+#include "stdlib/fs.hpp"
 
 using namespace std;
 namespace rt = nog::runtime;
@@ -103,6 +104,9 @@ string CodeGen::emit(const ASTNode& node) {
     }
     if (auto* expr = dynamic_cast<const IsNone*>(&node)) {
         return rt::is_none(emit(*expr->value));
+    }
+    if (auto* expr = dynamic_cast<const NotExpr*>(&node)) {
+        return "!" + emit(*expr->value);
     }
     if (auto* expr = dynamic_cast<const AwaitExpr*>(&node)) {
         // Special handling for channel recv: await ch.recv() -> std::get<1>(co_await ch.async_receive(...))
@@ -280,6 +284,13 @@ static bool has_http_import(const map<string, const Module*>& imports) {
 }
 
 /**
+ * Checks if the program imports the fs module.
+ */
+static bool has_fs_import(const map<string, const Module*>& imports) {
+    return imports.find("fs") != imports.end();
+}
+
+/**
  * Main code generation entry point. Generates complete C++ source with headers,
  * structs, and functions. In test mode, generates a test harness instead.
  */
@@ -357,6 +368,11 @@ string CodeGen::generate_with_imports(
         out += "\n";
     }
 
+    // Include fs module if imported (header-only, no library linking needed)
+    if (has_fs_import(imports)) {
+        out += "#include <nog/fs.hpp>\n\n";
+    }
+
     // Generate test harness infrastructure if in test mode
     if (test_mode) {
         out += "int _failures = 0;\n\n";
@@ -410,12 +426,16 @@ string CodeGen::generate_with_imports(
 /**
  * Generates a C++ namespace for an imported module.
  * Only includes public structs and functions.
- * Built-in modules (like http) use special runtime code.
+ * Built-in modules (like http, fs) use special runtime code.
  */
 string CodeGen::generate_module_namespace(const string& name, const Module& module) {
-    // Built-in http module has its own runtime implementation
+    // Built-in modules have their own runtime implementations
     if (name == "http") {
         return nog::stdlib::generate_http_runtime();
+    }
+
+    if (name == "fs") {
+        return nog::stdlib::generate_fs_runtime();
     }
 
     string out = "namespace " + name + " {\n\n";
