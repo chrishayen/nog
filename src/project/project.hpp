@@ -21,6 +21,7 @@ struct ProjectConfig {
     std::string name;      ///< Project name from [project] section
     fs::path root;         ///< Absolute path to project root directory
     fs::path init_file;    ///< Path to the nog.toml file
+    std::optional<std::string> entry;  ///< Optional entry point file for building
 };
 
 /**

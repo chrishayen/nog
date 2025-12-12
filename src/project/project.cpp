@@ -69,6 +69,12 @@ optional<ProjectConfig> parse_init_file(const fs::path& init_file) {
         config.init_file = init_file;
         config.root = init_file.parent_path();
 
+        auto entry = tbl["project"]["entry"].value<string>();
+
+        if (entry) {
+            config.entry = *entry;
+        }
+
         return config;
     } catch (const toml::parse_error&) {
         return nullopt;

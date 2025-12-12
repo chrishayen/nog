@@ -376,8 +376,47 @@ int run_file(const string& filename) {
 
 /**
  * Builds a nog source file to an executable.
+ * If a directory is provided, looks for nog.toml with entry field.
  */
-int build_file(const string& filename) {
+int build_file(const string& path) {
+    string filename;
+    string exe_name;
+
+    if (fs::is_directory(path)) {
+        fs::path dir_path = fs::absolute(path);
+        fs::path toml_path = dir_path / "nog.toml";
+
+        if (!fs::exists(toml_path)) {
+            cerr << "Error: No nog.toml found in " << path << endl;
+            return 1;
+        }
+
+        auto config = parse_init_file(toml_path);
+
+        if (!config) {
+            cerr << "Error: Could not parse nog.toml" << endl;
+            return 1;
+        }
+
+        if (!config->entry) {
+            cerr << "Error: No entry field in nog.toml" << endl;
+            return 1;
+        }
+
+        fs::path entry_path = dir_path / *config->entry;
+
+        if (!fs::exists(entry_path)) {
+            cerr << "Error: Entry file not found: " << *config->entry << endl;
+            return 1;
+        }
+
+        filename = entry_path.string();
+        exe_name = config->name;
+    } else {
+        filename = path;
+        exe_name = fs::path(path).stem().string();
+    }
+
     string source = read_file(filename);
 
     if (source.empty()) {
@@ -400,9 +439,6 @@ int build_file(const string& filename) {
 
     out << cpp_code;
     out.close();
-
-    fs::path src_path(filename);
-    string exe_name = src_path.stem().string();
 
     // Build compile command (without 2>&1 for build output)
     string compile_cmd = "g++ -std=c++23 -o " + exe_name + " " + cpp_file;
@@ -488,7 +524,8 @@ int generate_docs(int argc, char* argv[]) {
 
 /**
  * Main entry point. Usage:
- *   nog <file>       - Build executable
+ *   nog <file>       - Build executable from source file
+ *   nog <dir>        - Build project in directory (requires nog.toml with entry)
  *   nog run <file>   - Build and run
  *   nog test <path>  - Run tests
  *   nog init <name>  - Initialize project
@@ -496,7 +533,7 @@ int generate_docs(int argc, char* argv[]) {
  */
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        cerr << "Usage: nog <file>" << endl;
+        cerr << "Usage: nog <file|dir>" << endl;
         cerr << "       nog run <file>" << endl;
         cerr << "       nog test <path>" << endl;
         cerr << "       nog init <name>" << endl;
