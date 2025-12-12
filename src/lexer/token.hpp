@@ -214,6 +214,9 @@ enum class TokenType {
     LE,
     GE,
 
+    // Logical
+    NOT,
+
     OPTIONAL,
     SEMICOLON,
 

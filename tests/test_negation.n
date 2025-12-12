@@ -1,0 +1,42 @@
+// Tests for the ! (negation) operator
+
+fn test_not_true() {
+    result := !true;
+    assert_eq(false, result);
+}
+
+fn test_not_false() {
+    result := !false;
+    assert_eq(true, result);
+}
+
+fn test_not_variable() {
+    flag := false;
+    result := !flag;
+    assert_eq(true, result);
+}
+
+fn test_not_in_if() {
+    flag := false;
+    x := 0;
+
+    if !flag {
+        x = 1;
+    }
+
+    assert_eq(1, x);
+}
+
+fn returns_false() -> bool {
+    return false;
+}
+
+fn test_not_with_function_call() {
+    x := 0;
+
+    if !returns_false() {
+        x = 1;
+    }
+
+    assert_eq(1, x);
+}

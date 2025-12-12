@@ -31,6 +31,7 @@ add_library(nog_lib
     src/project/project.cpp
     src/project/module.cpp
     src/stdlib/http.cpp
+    src/stdlib/fs.cpp
 )
 target_link_libraries(nog_lib fmt::fmt tomlplusplus::tomlplusplus)
 target_include_directories(nog_lib PUBLIC ${llhttp_SOURCE_DIR}/include)
@@ -49,6 +50,9 @@ add_custom_target(nog_runtime_headers ALL
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/src/runtime/http/http.hpp
         ${CMAKE_BINARY_DIR}/include/nog/http.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/src/runtime/fs/fs.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/fs.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${llhttp_SOURCE_DIR}/include/llhttp.h
         ${CMAKE_BINARY_DIR}/include/llhttp.h

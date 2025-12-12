@@ -33,6 +33,7 @@ install: build
 	@cp $(BUILD_DIR)/include/nog/std.hpp.gch ~/.local/include/nog/
 	@cp $(BUILD_DIR)/include/nog/http.hpp ~/.local/include/nog/
 	@cp $(BUILD_DIR)/include/nog/http.hpp.gch ~/.local/include/nog/
+	@cp $(BUILD_DIR)/include/nog/fs.hpp ~/.local/include/nog/
 	@cp $(BUILD_DIR)/include/llhttp.h ~/.local/include/
 	@echo "Installed nog to ~/.local/bin/"
 	@echo "Installed runtime libraries to ~/.local/lib/nog/"

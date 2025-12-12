@@ -1,0 +1,38 @@
+// Tests for the fs module
+
+import fs;
+
+fn test_read_file() {
+    content := fs.read_file("tests/test_fs.n");
+    assert_eq(true, content.length() > 0);
+}
+
+fn test_read_file_nonexistent() {
+    content := fs.read_file("nonexistent_file_12345.txt");
+    assert_eq(0, content.length());
+}
+
+fn test_exists_file() {
+    assert_eq(true, fs.exists("tests/test_fs.n"));
+}
+
+fn test_exists_dir() {
+    assert_eq(true, fs.exists("tests"));
+}
+
+fn test_exists_nonexistent() {
+    assert_eq(false, fs.exists("nonexistent_file_12345.txt"));
+}
+
+fn test_is_dir_true() {
+    assert_eq(true, fs.is_dir("tests"));
+}
+
+fn test_is_dir_false() {
+    assert_eq(false, fs.is_dir("tests/test_fs.n"));
+}
+
+fn test_read_dir() {
+    files := fs.read_dir("tests");
+    assert_eq(true, files.length() > 0);
+}
