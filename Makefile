@@ -27,14 +27,17 @@ install: build
 	@mkdir -p ~/.local/lib/nog
 	@mkdir -p ~/.local/include/nog
 	@cp $(BUILD_DIR)/nog ~/.local/bin/
-	@rm -f ~/.local/lib/nog/libnog_http.a
+	@cp $(BUILD_DIR)/lib/libnog_http_runtime.a ~/.local/lib/nog/
 	@cp $(BUILD_DIR)/lib/libllhttp.a ~/.local/lib/nog/
+	@cp $(BUILD_DIR)/include/nog/std.hpp ~/.local/include/nog/
+	@cp $(BUILD_DIR)/include/nog/std.hpp.gch ~/.local/include/nog/
 	@cp $(BUILD_DIR)/include/nog/http.hpp ~/.local/include/nog/
+	@cp $(BUILD_DIR)/include/nog/http.hpp.gch ~/.local/include/nog/
 	@cp $(BUILD_DIR)/include/llhttp.h ~/.local/include/
-	@rm -f ~/.local/include/nog/llhttp.h
 	@echo "Installed nog to ~/.local/bin/"
 	@echo "Installed runtime libraries to ~/.local/lib/nog/"
 	@echo "Installed headers to ~/.local/include/"
+	@echo "Installed precompiled headers to ~/.local/include/nog/"
 
 docs: build
 	@$(BUILD_DIR)/docgen src/ docs/reference/

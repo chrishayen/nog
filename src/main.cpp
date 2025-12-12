@@ -66,15 +66,20 @@ bool uses_http_module(const string& source) {
 /**
  * Builds the g++ compile command with appropriate flags.
  * Adds runtime libraries when http module is used.
+ *
+ * Precompiled headers: GCC automatically uses .gch files when found
+ * alongside the .hpp file in the include path.
  */
 string build_compile_cmd(const string& source, const string& output, const string& input) {
     string cmd = "g++ -std=c++23 -o " + output + " " + input;
 
-    if (uses_http_module(source)) {
-        auto [lib_path, include_path] = get_runtime_paths();
+    // Always add include path for std.hpp PCH
+    auto [lib_path, include_path] = get_runtime_paths();
+    cmd += " -I" + include_path.string();
 
-        cmd += " -I" + include_path.string();
+    if (uses_http_module(source)) {
         cmd += " -L" + lib_path.string();
+        cmd += " -lnog_http_runtime";
         cmd += " -lllhttp";
     }
 
@@ -477,11 +482,13 @@ int build_file(const string& path) {
     // Build compile command (without 2>&1 for build output)
     string compile_cmd = "g++ -std=c++23 -o " + exe_name + " " + cpp_file;
 
-    if (uses_http_module(source)) {
-        auto [lib_path, include_path] = get_runtime_paths();
+    // Always add include path for std.hpp PCH
+    auto [lib_path, include_path] = get_runtime_paths();
+    compile_cmd += " -I" + include_path.string();
 
-        compile_cmd += " -I" + include_path.string();
+    if (uses_http_module(source)) {
         compile_cmd += " -L" + lib_path.string();
+        compile_cmd += " -lnog_http_runtime";
         compile_cmd += " -lllhttp";
     }
 

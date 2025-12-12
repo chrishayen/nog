@@ -225,10 +225,11 @@ unique_ptr<Program> create_http_module() {
 }
 
 /**
- * Returns the include directive for the http runtime library.
+ * Returns empty - http.hpp is now included at the top of generated code
+ * for precompiled header support. GCC requires PCH to be the first include.
  */
 string generate_http_runtime() {
-    return "#include <nog/http.hpp>\n";
+    return "";
 }
 
 }  // namespace nog::stdlib

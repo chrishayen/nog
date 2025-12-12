@@ -292,11 +292,8 @@ string CodeGen::generate(const unique_ptr<Program>& program, bool test_mode) {
         return generate_test_harness(program);
     }
 
-    string out = "#include <iostream>\n#include <string>\n#include <optional>\n";
-
-    if (has_function_types(*program)) {
-        out += "#include <functional>\n";
-    }
+    // std.hpp PCH includes iostream, string, optional, functional, memory, etc.
+    string out = "#include <nog/std.hpp>\n";
 
     if (has_async_functions(*program)) {
         out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
@@ -334,27 +331,31 @@ string CodeGen::generate_with_imports(
     this->current_program = program.get();
     this->imported_modules = imports;
 
-    string out = "#include <iostream>\n#include <string>\n#include <cstdint>\n#include <optional>\n";
+    string out;
 
-    if (has_function_types(*program)) {
-        out += "#include <functional>\n";
-    }
-
-    if (has_async_functions(*program) || has_http_import(imports)) {
-        out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
-    }
-
-    if (has_channels(*program)) {
-        out += "#include <asio/experimental/channel.hpp>\n";
-        out += "#include <asio/experimental/awaitable_operators.hpp>\n";
-        out += "using namespace asio::experimental::awaitable_operators;\n";
-    }
-
+    // For precompiled header support, PCH must be included FIRST
+    // GCC only uses PCH for the first #include in the translation unit
     if (has_http_import(imports)) {
-        out += "#include <llhttp.h>\n";
-    }
+        // http.hpp includes std.hpp and all ASIO headers
+        out += "#include <nog/http.hpp>\n";
+        out += "using namespace asio::experimental::awaitable_operators;\n";
+        out += "\n";
+    } else {
+        // std.hpp includes iostream, string, optional, functional, memory, etc.
+        out += "#include <nog/std.hpp>\n";
 
-    out += "\n";
+        if (has_async_functions(*program)) {
+            out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
+        }
+
+        if (has_channels(*program)) {
+            out += "#include <asio/experimental/channel.hpp>\n";
+            out += "#include <asio/experimental/awaitable_operators.hpp>\n";
+            out += "using namespace asio::experimental::awaitable_operators;\n";
+        }
+
+        out += "\n";
+    }
 
     // Generate test harness infrastructure if in test mode
     if (test_mode) {
@@ -630,11 +631,9 @@ string CodeGen::generate_statement(const ASTNode& node) {
  */
 string CodeGen::generate_test_harness(const unique_ptr<Program>& program) {
     this->current_program = program.get();
-    string out = "#include <iostream>\n#include <string>\n#include <cstdint>\n#include <optional>\n";
 
-    if (has_function_types(*program)) {
-        out += "#include <functional>\n";
-    }
+    // std.hpp PCH includes iostream, string, optional, functional, memory, etc.
+    string out = "#include <nog/std.hpp>\n";
 
     if (has_async_functions(*program)) {
         out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
