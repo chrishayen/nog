@@ -1,0 +1,25 @@
+// HTTP Server with App-based Routing
+// Run with: nog run examples/http_app.n
+// Then open http://localhost:8080 in your browser
+
+import http;
+
+async fn home(http.Request req) -> http.Response {
+    return http.text("Hello from Nog HTTP Server!");
+}
+
+async fn about(http.Request req) -> http.Response {
+    return http.text("Nog is a modern programming language");
+}
+
+async fn api_hello(http.Request req) -> http.Response {
+    return http.json("{message: Hello}");
+}
+
+async fn main() {
+    app := http.App {};
+    app.get("/", home);
+    app.get("/about", about);
+    app.get("/api/hello", api_hello);
+    await app.listen(8080);
+}

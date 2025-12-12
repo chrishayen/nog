@@ -96,6 +96,12 @@ struct VariableRef : ASTNode {
     explicit VariableRef(const string& n) : name(n) {}
 };
 
+/** @brief Reference to a function by name (for passing as argument) */
+struct FunctionRef : ASTNode {
+    string name;         ///< Function name (may be qualified: module.func)
+    explicit FunctionRef(const string& n) : name(n) {}
+};
+
 /** @brief Qualified reference to an imported item: module.name (e.g., math.add) */
 struct QualifiedRef : ASTNode {
     string module_name;  ///< Module alias (e.g., "math")

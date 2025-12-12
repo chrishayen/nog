@@ -1,0 +1,39 @@
+// ============================================
+// Function References
+// ============================================
+
+// Test function that will be referenced
+fn add(int a, int b) -> int {
+    return a + b;
+}
+
+// Test function that will be referenced
+fn multiply(int a, int b) -> int {
+    return a * b;
+}
+
+// Function that takes another function as parameter
+fn apply_op(int x, int y, fn(int, int) -> int op) -> int {
+    return op(x, y);
+}
+
+// Test passing function reference
+fn test_function_ref() {
+    result := apply_op(3, 4, add);
+    assert_eq(result, 7);
+}
+
+// Test passing different function reference
+fn test_function_ref_multiply() {
+    result := apply_op(3, 4, multiply);
+    assert_eq(result, 12);
+}
+
+// ============================================
+// Sync test (baseline)
+// ============================================
+
+fn test_sync_still_works() {
+    x := 1;
+    assert_eq(x, 1);
+}

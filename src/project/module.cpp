@@ -9,6 +9,7 @@
 #include "module.hpp"
 #include "lexer/lexer.hpp"
 #include "parser/parser.hpp"
+#include "stdlib/http.hpp"
 #include <fstream>
 #include <sstream>
 
@@ -98,8 +99,14 @@ const Module* ModuleManager::load_module(const string& module_path) {
     // Mark as loading
     loading.insert(module_path);
 
-    // Load the module
-    auto mod = load_module_internal(module_path);
+    // Check if this is a built-in module
+    unique_ptr<Module> mod;
+
+    if (nog::stdlib::is_builtin_module(alias)) {
+        mod = create_builtin_module(alias);
+    } else {
+        mod = load_module_internal(module_path);
+    }
 
     if (!mod) {
         loading.erase(module_path);
@@ -147,6 +154,23 @@ static string read_file(const fs::path& path) {
     stringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();
+}
+
+/**
+ * @brief Creates a built-in stdlib module.
+ */
+unique_ptr<Module> ModuleManager::create_builtin_module(const string& name) {
+    auto mod = make_unique<Module>();
+    mod->name = name;
+    mod->full_path = name;
+
+    if (name == "http") {
+        mod->ast = nog::stdlib::create_http_module();
+    } else {
+        return nullptr;
+    }
+
+    return mod;
 }
 
 /**

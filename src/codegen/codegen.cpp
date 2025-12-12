@@ -8,6 +8,7 @@
 
 #include "codegen.hpp"
 #include "emit/runtime.hpp"
+#include "stdlib/http.hpp"
 
 using namespace std;
 namespace rt = nog::runtime;
@@ -35,6 +36,17 @@ string CodeGen::emit(const ASTNode& node) {
     }
     if (auto* ref = dynamic_cast<const VariableRef*>(&node)) {
         return rt::variable_ref(ref->name);
+    }
+    if (auto* fref = dynamic_cast<const FunctionRef*>(&node)) {
+        // Function reference - emit the function name (possibly qualified with ::)
+        string func_name = fref->name;
+        size_t dot_pos = func_name.find('.');
+
+        if (dot_pos != string::npos) {
+            func_name = func_name.substr(0, dot_pos) + "::" + func_name.substr(dot_pos + 1);
+        }
+
+        return func_name;
     }
     if (auto* expr = dynamic_cast<const BinaryExpr*>(&node)) {
         return rt::binary_expr(emit(*expr->left), expr->op, emit(*expr->right));
@@ -188,6 +200,36 @@ static bool has_channels(const Program& program) {
 }
 
 /**
+ * Checks if any function has function type parameters (requires <functional>).
+ */
+static bool has_function_types(const Program& program) {
+    for (const auto& fn : program.functions) {
+        for (const auto& param : fn->params) {
+            if (param.type.rfind("fn(", 0) == 0) {
+                return true;
+            }
+        }
+    }
+
+    for (const auto& m : program.methods) {
+        for (const auto& param : m->params) {
+            if (param.type.rfind("fn(", 0) == 0) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Checks if the program imports the http module.
+ */
+static bool has_http_import(const map<string, const Module*>& imports) {
+    return imports.find("http") != imports.end();
+}
+
+/**
  * Main code generation entry point. Generates complete C++ source with headers,
  * structs, and functions. In test mode, generates a test harness instead.
  */
@@ -201,6 +243,10 @@ string CodeGen::generate(const unique_ptr<Program>& program, bool test_mode) {
     }
 
     string out = "#include <iostream>\n#include <string>\n#include <optional>\n";
+
+    if (has_function_types(*program)) {
+        out += "#include <functional>\n";
+    }
 
     if (has_async_functions(*program)) {
         out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
@@ -240,7 +286,11 @@ string CodeGen::generate_with_imports(
 
     string out = "#include <iostream>\n#include <string>\n#include <cstdint>\n#include <optional>\n";
 
-    if (has_async_functions(*program)) {
+    if (has_function_types(*program)) {
+        out += "#include <functional>\n";
+    }
+
+    if (has_async_functions(*program) || has_http_import(imports)) {
         out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
     }
 
@@ -248,6 +298,10 @@ string CodeGen::generate_with_imports(
         out += "#include <asio/experimental/channel.hpp>\n";
         out += "#include <asio/experimental/awaitable_operators.hpp>\n";
         out += "using namespace asio::experimental::awaitable_operators;\n";
+    }
+
+    if (has_http_import(imports)) {
+        out += "#include <llhttp.h>\n";
     }
 
     out += "\n";
@@ -305,8 +359,14 @@ string CodeGen::generate_with_imports(
 /**
  * Generates a C++ namespace for an imported module.
  * Only includes public structs and functions.
+ * Built-in modules (like http) use special runtime code.
  */
 string CodeGen::generate_module_namespace(const string& name, const Module& module) {
+    // Built-in http module has its own runtime implementation
+    if (name == "http") {
+        return nog::stdlib::generate_http_runtime();
+    }
+
     string out = "namespace " + name + " {\n\n";
 
     // Save and set current program for method lookup
@@ -389,9 +449,11 @@ string CodeGen::generate_method(const MethodDef& method) {
  * Generates a C++ function. Handles 'main' specially (adds return 0 if no return type).
  * Maps Nog types to C++ types for parameters and return type.
  * Async functions generate asio::awaitable<T> return type and use co_return.
+ * Async main is wrapped with io_context runner.
  */
 string CodeGen::generate_function(const FunctionDef& fn) {
     bool is_main = (fn.name == "main" && !test_mode);
+    bool is_async_main = is_main && fn.is_async;
 
     // Track if we're in an async function for co_return generation
     in_async_function = fn.is_async;
@@ -406,17 +468,32 @@ string CodeGen::generate_function(const FunctionDef& fn) {
         body.push_back(generate_statement(*stmt));
     }
 
-    string rt_type = is_main ? "int" : fn.return_type;
+    string out;
 
-    string out = rt::function_def(fn.name, params, rt_type, body, fn.is_async);
+    if (is_async_main) {
+        // Generate the async function as _async_main()
+        string rt_type = fn.return_type.empty() ? "" : fn.return_type;
+        out = rt::function_def("_async_main", params, rt_type, body, true);
 
-    // For main without explicit return, add return 0
-    if (is_main && fn.return_type.empty()) {
-        // Insert return 0 before closing brace
-        auto pos = out.rfind("}\n");
+        // Generate int main() that runs the coroutine
+        out += "\nint main() {\n";
+        out += "\tasio::io_context io_context;\n";
+        out += "\tasio::co_spawn(io_context, _async_main(), asio::detached);\n";
+        out += "\tio_context.run();\n";
+        out += "\treturn 0;\n";
+        out += "}\n";
+    } else {
+        string rt_type = is_main ? "int" : fn.return_type;
+        out = rt::function_def(fn.name, params, rt_type, body, fn.is_async);
 
-        if (pos != string::npos) {
-            out.insert(pos, "\treturn 0;\n");
+        // For main without explicit return, add return 0
+        if (is_main && fn.return_type.empty()) {
+            // Insert return 0 before closing brace
+            auto pos = out.rfind("}\n");
+
+            if (pos != string::npos) {
+                out.insert(pos, "\treturn 0;\n");
+            }
         }
     }
 
@@ -504,6 +581,10 @@ string CodeGen::generate_statement(const ASTNode& node) {
 string CodeGen::generate_test_harness(const unique_ptr<Program>& program) {
     this->current_program = program.get();
     string out = "#include <iostream>\n#include <string>\n#include <cstdint>\n#include <optional>\n";
+
+    if (has_function_types(*program)) {
+        out += "#include <functional>\n";
+    }
 
     if (has_async_functions(*program)) {
         out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";

@@ -138,12 +138,57 @@ bool Parser::is_imported_module(const string& name) {
 }
 
 /**
+ * Pre-scans the token stream to collect function and struct names.
+ * This allows forward references to functions defined later in the file.
+ */
+void Parser::prescan_definitions() {
+    size_t saved_pos = pos;
+
+    while (!check(TokenType::EOF_TOKEN)) {
+        // Skip async keyword
+        if (check(TokenType::ASYNC)) {
+            advance();
+        }
+
+        // Function: fn name(...)
+        if (check(TokenType::FN)) {
+            advance();
+
+            if (check(TokenType::IDENT)) {
+                function_names.push_back(current().value);
+            }
+        }
+
+        // Struct: Name :: struct
+        if (check(TokenType::IDENT)) {
+            string name = current().value;
+            advance();
+
+            if (check(TokenType::DOUBLE_COLON)) {
+                advance();
+
+                if (check(TokenType::STRUCT)) {
+                    struct_names.push_back(name);
+                }
+            }
+        }
+
+        advance();
+    }
+
+    pos = saved_pos;
+}
+
+/**
  * Main parsing entry point. Parses the complete token stream into a Program AST.
  * Parses imports first, then function definitions (fn), struct definitions (Name :: struct),
  * and method definitions (Name :: method_name).
  */
 unique_ptr<Program> Parser::parse() {
     auto program = make_unique<Program>();
+
+    // Pre-scan to collect all function and struct names for forward references
+    prescan_definitions();
 
     // Parse imports first (must be at top of file)
     while (check(TokenType::IMPORT)) {
@@ -266,6 +311,80 @@ bool Parser::is_struct_type(const string& name) {
 }
 
 /**
+ * Checks if the given name is a known function.
+ */
+bool Parser::is_function_name(const string& name) {
+    for (const auto& f : function_names) {
+        if (f == name) return true;
+    }
+    return false;
+}
+
+/**
+ * Parses a type, including function types like fn(int, int) -> int.
+ * Also handles qualified types like module.Type.
+ * Returns the type as a string.
+ */
+string Parser::parse_type() {
+    // Function type: fn(params) -> return_type
+    if (check(TokenType::FN)) {
+        advance();
+        consume(TokenType::LPAREN);
+
+        string fn_type = "fn(";
+        bool first = true;
+
+        while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
+            if (!first) {
+                fn_type += ", ";
+            }
+            first = false;
+
+            // Parse parameter type (recursively for nested fn types)
+            fn_type += parse_type();
+
+            if (check(TokenType::COMMA)) {
+                advance();
+            }
+        }
+
+        consume(TokenType::RPAREN);
+        fn_type += ")";
+
+        // Parse optional return type
+        if (check(TokenType::ARROW)) {
+            advance();
+            fn_type += " -> " + parse_type();
+        }
+
+        return fn_type;
+    }
+
+    // Primitive type
+    if (is_type_token()) {
+        string type = token_to_type(current().type);
+        advance();
+        return type;
+    }
+
+    // Custom type (struct name) or qualified type (module.Type)
+    if (check(TokenType::IDENT)) {
+        string type = current().value;
+        advance();
+
+        // Check for qualified type: module.Type
+        if (check(TokenType::DOT)) {
+            advance();
+            type += "." + consume(TokenType::IDENT).value;
+        }
+
+        return type;
+    }
+
+    throw runtime_error("expected type at line " + to_string(current().line));
+}
+
+/**
  * Collects consecutive doc comment tokens into a single string.
  * Multiple /// lines are joined with newlines.
  */
@@ -308,18 +427,9 @@ unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int li
             param.type = struct_name;
             param.name = "self";
             advance();
-        } else if (is_type_token()) {
-            param.type = token_to_type(current().type);
-            advance();
-            param.name = consume(TokenType::IDENT).value;
-        } else if (check(TokenType::IDENT) && is_struct_type(current().value)) {
-            // Struct type parameter
-            param.type = current().value;
-            advance();
-            param.name = consume(TokenType::IDENT).value;
         } else {
-            advance();
-            continue;
+            param.type = parse_type();
+            param.name = consume(TokenType::IDENT).value;
         }
 
         method->params.push_back(param);
@@ -334,14 +444,7 @@ unique_ptr<MethodDef> Parser::parse_method_def(const string& struct_name, int li
     // Parse return type: -> type
     if (check(TokenType::ARROW)) {
         advance();
-
-        if (is_type_token()) {
-            method->return_type = token_to_type(current().type);
-            advance();
-        } else if (check(TokenType::IDENT)) {
-            method->return_type = current().value;
-            advance();
-        }
+        method->return_type = parse_type();
     }
 
     consume(TokenType::LBRACE);
@@ -372,21 +475,10 @@ unique_ptr<FunctionDef> Parser::parse_function(Visibility vis, bool is_async) {
     func->visibility = vis;
     func->is_async = is_async;
 
-    // Parse parameters: fn foo(int a, int b) or fn foo(Person p)
+    // Parse parameters: fn foo(int a, int b) or fn foo(Person p) or fn foo(fn(int) -> int callback)
     while (!check(TokenType::RPAREN) && !check(TokenType::EOF_TOKEN)) {
         FunctionParam param;
-
-        if (is_type_token()) {
-            param.type = token_to_type(current().type);
-            advance();
-        } else if (check(TokenType::IDENT)) {
-            // Custom type (struct or unknown type - typechecker will validate)
-            param.type = current().value;
-            advance();
-        } else {
-            throw runtime_error("expected type in parameter list at line " + to_string(current().line));
-        }
-
+        param.type = parse_type();
         param.name = consume(TokenType::IDENT).value;
         func->params.push_back(param);
 
@@ -400,10 +492,7 @@ unique_ptr<FunctionDef> Parser::parse_function(Visibility vis, bool is_async) {
     // Parse return type: -> int
     if (check(TokenType::ARROW)) {
         advance();
-        if (is_type_token()) {
-            func->return_type = token_to_type(current().type);
-            advance();
-        }
+        func->return_type = parse_type();
     }
 
     consume(TokenType::LBRACE);
@@ -953,10 +1042,11 @@ unique_ptr<ASTNode> Parser::parse_primary() {
                 return parse_struct_literal(tok.value + "." + item_name);
             }
 
-            // Otherwise it's a qualified reference to a value/type
-            auto qref = make_unique<QualifiedRef>(tok.value, item_name);
-            qref->line = tok.line;
-            return qref;
+            // Check if it's a qualified function reference: module.func (without parens)
+            // This is for passing module functions as arguments
+            auto fref = make_unique<FunctionRef>(tok.value + "." + item_name);
+            fref->line = tok.line;
+            return fref;
         }
 
         // Check if it's a struct literal: TypeName { field: value, ... }
@@ -985,6 +1075,13 @@ unique_ptr<ASTNode> Parser::parse_primary() {
 
             consume(TokenType::RPAREN);
             return call;
+        }
+
+        // Check if it's a function reference (function name without parentheses)
+        if (is_function_name(tok.value)) {
+            auto ref = make_unique<FunctionRef>(tok.value);
+            ref->line = tok.line;
+            return ref;
         }
 
         return make_unique<VariableRef>(tok.value);

@@ -25,6 +25,42 @@ using namespace std;
 namespace fs = filesystem;
 
 /**
+ * Gets the directory where the nog executable is located.
+ * Used to find build artifacts like llhttp library.
+ */
+fs::path get_executable_dir() {
+    return fs::read_symlink("/proc/self/exe").parent_path();
+}
+
+/**
+ * Checks if source code imports the http module.
+ */
+bool uses_http_module(const string& source) {
+    return source.find("import http") != string::npos;
+}
+
+/**
+ * Builds the g++ compile command with appropriate flags.
+ * Adds llhttp library when http module is used.
+ */
+string build_compile_cmd(const string& source, const string& output, const string& input) {
+    string cmd = "g++ -std=c++23 -o " + output + " " + input;
+
+    if (uses_http_module(source)) {
+        fs::path exe_dir = get_executable_dir();
+        fs::path llhttp_include = exe_dir / "_deps" / "llhttp-src" / "include";
+        fs::path llhttp_lib = exe_dir / "_deps" / "llhttp-build";
+
+        cmd += " -I" + llhttp_include.string();
+        cmd += " -L" + llhttp_lib.string();
+        cmd += " -lllhttp";
+    }
+
+    cmd += " 2>&1";
+    return cmd;
+}
+
+/**
  * Reads the entire contents of a file into a string.
  * Returns empty string and prints error if file cannot be opened.
  */
@@ -184,7 +220,7 @@ int run_tests(const string& path) {
         out << cpp_code;
         out.close();
 
-        string compile_cmd = "g++ -std=c++23 -o " + tmp_bin + " " + tmp_cpp + " 2>&1";
+        string compile_cmd = build_compile_cmd(source, tmp_bin, tmp_cpp);
         int compile_result = system(compile_cmd.c_str());
 
         if (compile_result != 0) {
@@ -303,7 +339,7 @@ int run_file(const string& filename) {
     out.close();
 
     // Compile
-    string compile_cmd = "g++ -std=c++23 -o " + exe_file + " " + cpp_file + " 2>&1";
+    string compile_cmd = build_compile_cmd(source, exe_file, cpp_file);
     int compile_result = system(compile_cmd.c_str());
 
     if (compile_result != 0) {
@@ -311,8 +347,16 @@ int run_file(const string& filename) {
         return 1;
     }
 
-    // Run
-    return system(exe_file.c_str());
+    // Run - need to set library path if using http
+    string run_cmd = exe_file;
+
+    if (uses_http_module(source)) {
+        fs::path exe_dir = get_executable_dir();
+        fs::path llhttp_lib = exe_dir / "_deps" / "llhttp-build";
+        run_cmd = "LD_LIBRARY_PATH=" + llhttp_lib.string() + " " + exe_file;
+    }
+
+    return system(run_cmd.c_str());
 }
 
 /**
@@ -345,7 +389,18 @@ int build_file(const string& filename) {
     fs::path src_path(filename);
     string exe_name = src_path.stem().string();
 
+    // Build compile command (without 2>&1 for build output)
     string compile_cmd = "g++ -std=c++23 -o " + exe_name + " " + cpp_file;
+
+    if (uses_http_module(source)) {
+        fs::path exe_dir = get_executable_dir();
+        fs::path llhttp_include = exe_dir / "_deps" / "llhttp-src" / "include";
+        fs::path llhttp_lib = exe_dir / "_deps" / "llhttp-build";
+
+        compile_cmd += " -I" + llhttp_include.string();
+        compile_cmd += " -L" + llhttp_lib.string();
+        compile_cmd += " -lllhttp";
+    }
 
     if (system(compile_cmd.c_str()) != 0) {
         cerr << "Compile failed" << endl;

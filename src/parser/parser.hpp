@@ -53,6 +53,7 @@ private:
     vector<Token> tokens;          ///< Token stream to parse
     size_t pos = 0;                ///< Current position in tokens
     vector<string> struct_names;   ///< Known struct names for type resolution
+    vector<string> function_names; ///< Known function names for function reference resolution
     vector<string> imported_modules;  ///< Imported module aliases for qualified reference resolution
 
     // Token navigation
@@ -89,7 +90,10 @@ private:
     unique_ptr<StructLiteral> parse_struct_literal(const string& name);  ///< Parses { field: value }
 
     // Helpers
+    void prescan_definitions();                    ///< Pre-scans for function/struct names
     string token_to_type(TokenType type);          ///< Converts type token to string
+    string parse_type();                           ///< Parses a type (including fn types)
     bool is_struct_type(const string& name);       ///< Checks if name is a known struct
+    bool is_function_name(const string& name);     ///< Checks if name is a known function
     string collect_doc_comments();                 ///< Collects consecutive /// doc comments
 };

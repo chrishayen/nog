@@ -86,6 +86,11 @@ private:
     std::unique_ptr<Module> load_module_internal(const std::string& module_path);
 
     /**
+     * @brief Creates a built-in stdlib module.
+     */
+    std::unique_ptr<Module> create_builtin_module(const std::string& name);
+
+    /**
      * @brief Merges multiple .n files into a single Program AST.
      */
     std::unique_ptr<Program> merge_files(const std::vector<fs::path>& files, const std::string& module_name);

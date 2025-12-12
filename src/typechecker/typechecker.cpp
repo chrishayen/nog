@@ -337,6 +337,33 @@ TypeInfo TypeChecker::infer_type(const ASTNode& expr) {
         return {"unknown", false, false};
     }
 
+    if (auto* fref = dynamic_cast<const FunctionRef*>(&expr)) {
+        // Function reference - check if function exists and return its type
+        size_t dot_pos = fref->name.find('.');
+
+        if (dot_pos != string::npos) {
+            // Qualified function reference: module.func
+            string module_name = fref->name.substr(0, dot_pos);
+            string func_name = fref->name.substr(dot_pos + 1);
+            const FunctionDef* func = get_qualified_function(module_name, func_name);
+
+            if (!func) {
+                error("undefined function '" + fref->name + "'", fref->line);
+                return {"unknown", false, false};
+            }
+
+            return {"fn:" + fref->name, false, false};
+        }
+
+        // Local function reference
+        if (functions.find(fref->name) == functions.end()) {
+            error("undefined function '" + fref->name + "'", fref->line);
+            return {"unknown", false, false};
+        }
+
+        return {"fn:" + fref->name, false, false};
+    }
+
     if (auto* bin = dynamic_cast<const BinaryExpr*>(&expr)) {
         TypeInfo left_type = infer_type(*bin->left);
         TypeInfo right_type = infer_type(*bin->right);
@@ -432,6 +459,23 @@ TypeInfo TypeChecker::infer_type(const ASTNode& expr) {
             }
 
             return {func->return_type, false, false};
+        }
+
+        // Check if it's a local variable with a function type (callback)
+        if (locals.find(call->name) != locals.end()) {
+            TypeInfo local_type = locals[call->name];
+
+            if (local_type.base_type.rfind("fn(", 0) == 0) {
+                // It's a call through a function parameter - extract return type
+                size_t arrow_pos = local_type.base_type.find(" -> ");
+
+                if (arrow_pos != string::npos) {
+                    string ret_type = local_type.base_type.substr(arrow_pos + 4);
+                    return {ret_type, false, false};
+                }
+
+                return {"void", false, true};
+            }
         }
 
         if (functions.find(call->name) == functions.end()) {
@@ -655,7 +699,7 @@ bool TypeChecker::is_primitive_type(const string& type) const {
 }
 
 /**
- * Checks if a type is valid (either a primitive, a known struct, channel, or a qualified module type).
+ * Checks if a type is valid (either a primitive, a known struct, channel, function type, or a qualified module type).
  */
 bool TypeChecker::is_valid_type(const string& type) const {
     if (is_primitive_type(type)) {
@@ -663,6 +707,11 @@ bool TypeChecker::is_valid_type(const string& type) const {
     }
 
     if (structs.find(type) != structs.end()) {
+        return true;
+    }
+
+    // Check for function type: fn:name or fn(params) -> ret
+    if (type.rfind("fn:", 0) == 0 || type.rfind("fn(", 0) == 0) {
         return true;
     }
 
@@ -690,6 +739,7 @@ bool TypeChecker::is_valid_type(const string& type) const {
 /**
  * Checks if actual type can be assigned to expected type.
  * Special case: none can be assigned to optional types.
+ * Special case: function references match function type parameters.
  */
 bool TypeChecker::types_compatible(const TypeInfo& expected, const TypeInfo& actual) const {
     // none can be assigned to optional types
@@ -699,6 +749,12 @@ bool TypeChecker::types_compatible(const TypeInfo& expected, const TypeInfo& act
 
     // Allow unknown types to pass (error already reported)
     if (actual.base_type == "unknown" || expected.base_type == "unknown") {
+        return true;
+    }
+
+    // Function reference compatibility: fn:name is compatible with fn(...) type
+    // For now, accept any function reference for any function parameter type
+    if (actual.base_type.rfind("fn:", 0) == 0 && expected.base_type.rfind("fn(", 0) == 0) {
         return true;
     }
 
