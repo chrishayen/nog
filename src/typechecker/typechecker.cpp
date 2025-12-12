@@ -117,6 +117,11 @@ void TypeChecker::check_method(const MethodDef& method) {
         check_statement(*stmt);
     }
 
+    // Check that non-void methods return a value
+    if (!method.return_type.empty() && !has_return(method.body)) {
+        error("method '" + method.name + "' must return a value of type '" + method.return_type + "'", method.line);
+    }
+
     in_async_context = false;
 
     current_struct.clear();
@@ -149,6 +154,11 @@ void TypeChecker::check_function(const FunctionDef& func) {
     // Check body statements
     for (const auto& stmt : func.body) {
         check_statement(*stmt);
+    }
+
+    // Check that non-void functions return a value
+    if (!func.return_type.empty() && !has_return(func.body)) {
+        error("function '" + func.name + "' must return a value of type '" + func.return_type + "'", func.line);
     }
 
     in_async_context = false;
@@ -894,4 +904,27 @@ const MethodDef* TypeChecker::get_qualified_method(const string& module, const s
     }
 
     return nullptr;
+}
+
+/**
+ * Checks if a list of statements contains a return statement.
+ * Recursively checks if/else branches for guaranteed returns.
+ */
+bool TypeChecker::has_return(const vector<unique_ptr<ASTNode>>& stmts) const {
+    for (const auto& stmt : stmts) {
+        if (dynamic_cast<const ReturnStmt*>(stmt.get())) {
+            return true;
+        }
+
+        // Check if/else branches - both must return for guaranteed return
+        if (auto* if_stmt = dynamic_cast<const IfStmt*>(stmt.get())) {
+            if (!if_stmt->else_body.empty() &&
+                has_return(if_stmt->then_body) &&
+                has_return(if_stmt->else_body)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }

@@ -128,4 +128,7 @@ private:
     const FunctionDef* get_qualified_function(const string& module, const string& name) const;  ///< Looks up module.func
     const StructDef* get_qualified_struct(const string& module, const string& name) const;      ///< Looks up module.Type
     const MethodDef* get_qualified_method(const string& module, const string& struct_name, const string& method_name) const;  ///< Looks up module method
+
+    // Return statement analysis
+    bool has_return(const vector<unique_ptr<ASTNode>>& stmts) const;  ///< Checks if statements contain a return
 };
