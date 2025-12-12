@@ -24,6 +24,16 @@ using namespace std;
 namespace fs = filesystem;
 
 /**
+ * Result of transpiling a Nog source file.
+ * Contains both the generated C++ code and metadata about module usage.
+ */
+struct TranspileResult {
+    string cpp_code;        ///< Generated C++ source code
+    bool uses_http = false; ///< True if http module is imported
+    bool uses_fs = false;   ///< True if fs module is imported
+};
+
+/**
  * Gets the directory where the nog executable is located.
  * Used to find runtime libraries relative to the compiler.
  */
@@ -57,34 +67,20 @@ pair<fs::path, fs::path> get_runtime_paths() {
 }
 
 /**
- * Checks if source code imports the http module.
- */
-bool uses_http_module(const string& source) {
-    return source.find("import http") != string::npos;
-}
-
-/**
- * Checks if source code imports the fs module.
- */
-bool uses_fs_module(const string& source) {
-    return source.find("import fs") != string::npos;
-}
-
-/**
  * Builds the g++ compile command with appropriate flags.
- * Adds runtime libraries when http module is used.
+ * Adds runtime libraries based on which modules are used.
  *
  * Precompiled headers: GCC automatically uses .gch files when found
  * alongside the .hpp file in the include path.
  */
-string build_compile_cmd(const string& source, const string& output, const string& input) {
+string build_compile_cmd(const TranspileResult& result, const string& output, const string& input) {
     string cmd = "g++ -std=c++23 -o " + output + " " + input;
 
     // Always add include path for std.hpp PCH
     auto [lib_path, include_path] = get_runtime_paths();
     cmd += " -I" + include_path.string();
 
-    if (uses_http_module(source)) {
+    if (result.uses_http) {
         cmd += " -L" + lib_path.string();
         cmd += " -lnog_http_runtime";
         cmd += " -lllhttp";
@@ -112,9 +108,11 @@ string read_file(const string& path) {
 /**
  * Transpiles Nog source to C++ code.
  * Runs lexer -> parser -> module loading -> type checker -> code generator pipeline.
- * Returns empty string and prints errors if type checking or module loading fails.
+ * Returns result with empty cpp_code and prints errors if type checking or module loading fails.
  */
-string transpile(const string& source, const string& filename, bool test_mode) {
+TranspileResult transpile(const string& source, const string& filename, bool test_mode) {
+    TranspileResult result;
+
     Lexer lexer(source);
     auto tokens = lexer.tokenize();
     Parser parser(tokens);
@@ -125,7 +123,16 @@ string transpile(const string& source, const string& filename, bool test_mode) {
         ast = parser.parse();
     } catch (const runtime_error& e) {
         cerr << filename << ": parse error: " << e.what() << endl;
-        return "";
+        return result;
+    }
+
+    // Detect which builtin modules are used from the parsed AST
+    for (const auto& imp : ast->imports) {
+        if (imp->module_path == "http") {
+            result.uses_http = true;
+        } else if (imp->module_path == "fs") {
+            result.uses_fs = true;
+        }
     }
 
     // Find project configuration (for module resolution)
@@ -146,14 +153,14 @@ string transpile(const string& source, const string& filename, bool test_mode) {
                     cerr << filename << ": error: " << err << endl;
                 }
 
-                return "";
+                return result;
             }
 
             imports[imp->alias] = mod;
         }
     } else if (!ast->imports.empty()) {
         cerr << filename << ": error: imports require a nog.toml file (run 'nog init')" << endl;
-        return "";
+        return result;
     }
 
     // Type check with imports
@@ -168,17 +175,19 @@ string transpile(const string& source, const string& filename, bool test_mode) {
             cerr << err.filename << ":" << err.line << ": error: " << err.message << endl;
         }
 
-        return "";
+        return result;
     }
 
     // Generate code with imports
     CodeGen codegen;
 
     if (imports.empty()) {
-        return codegen.generate(ast, test_mode);
+        result.cpp_code = codegen.generate(ast, test_mode);
+    } else {
+        result.cpp_code = codegen.generate_with_imports(ast, imports, test_mode);
     }
 
-    return codegen.generate_with_imports(ast, imports, test_mode);
+    return result;
 }
 
 /**
@@ -239,9 +248,9 @@ int run_tests(const string& path) {
         string source = read_file(test_file.string());
         if (source.empty()) continue;
 
-        string cpp_code = transpile(source, test_file.string(), true);
+        TranspileResult result = transpile(source, test_file.string(), true);
 
-        if (cpp_code.empty()) {
+        if (result.cpp_code.empty()) {
             cout << "\033[31mFAIL\033[0m " << test_file.string() << " (type errors)" << endl;
             total_failures++;
             continue;
@@ -251,10 +260,10 @@ int run_tests(const string& path) {
         string tmp_bin = "/tmp/nog_test";
 
         ofstream out(tmp_cpp);
-        out << cpp_code;
+        out << result.cpp_code;
         out.close();
 
-        string compile_cmd = build_compile_cmd(source, tmp_bin, tmp_cpp);
+        string compile_cmd = build_compile_cmd(result, tmp_bin, tmp_cpp);
         int compile_result = system(compile_cmd.c_str());
 
         if (compile_result != 0) {
@@ -282,7 +291,7 @@ int run_tests(const string& path) {
         stringstream error_capture;
         streambuf* old_cerr = cerr.rdbuf(error_capture.rdbuf());
 
-        string cpp_code = transpile(source, test_file.string(), false);
+        TranspileResult result = transpile(source, test_file.string(), false);
 
         cerr.rdbuf(old_cerr);
         string error_output = error_capture.str();
@@ -296,7 +305,7 @@ int run_tests(const string& path) {
             }
         }
 
-        if (!cpp_code.empty()) {
+        if (!result.cpp_code.empty()) {
             cout << "\033[31mFAIL\033[0m " << test_file.string()
                  << " (expected error, but compiled)" << endl;
             total_failures++;
@@ -387,9 +396,9 @@ int run_file(const string& path) {
         return 1;
     }
 
-    string cpp_code = transpile(source, filename, false);
+    TranspileResult result = transpile(source, filename, false);
 
-    if (cpp_code.empty()) {
+    if (result.cpp_code.empty()) {
         return 1;
     }
 
@@ -404,11 +413,11 @@ int run_file(const string& path) {
         return 1;
     }
 
-    out << cpp_code;
+    out << result.cpp_code;
     out.close();
 
     // Compile
-    string compile_cmd = build_compile_cmd(source, exe_file, cpp_file);
+    string compile_cmd = build_compile_cmd(result, exe_file, cpp_file);
     int compile_result = system(compile_cmd.c_str());
 
     if (compile_result != 0) {
@@ -469,9 +478,9 @@ int build_file(const string& path) {
         return 1;
     }
 
-    string cpp_code = transpile(source, filename, false);
+    TranspileResult result = transpile(source, filename, false);
 
-    if (cpp_code.empty()) {
+    if (result.cpp_code.empty()) {
         return 1;
     }
 
@@ -483,20 +492,15 @@ int build_file(const string& path) {
         return 1;
     }
 
-    out << cpp_code;
+    out << result.cpp_code;
     out.close();
 
-    // Build compile command (without 2>&1 for build output)
-    string compile_cmd = "g++ -std=c++23 -o " + exe_name + " " + cpp_file;
+    // Build compile command
+    string compile_cmd = build_compile_cmd(result, exe_name, cpp_file);
 
-    // Always add include path for std.hpp PCH
-    auto [lib_path, include_path] = get_runtime_paths();
-    compile_cmd += " -I" + include_path.string();
-
-    if (uses_http_module(source)) {
-        compile_cmd += " -L" + lib_path.string();
-        compile_cmd += " -lnog_http_runtime";
-        compile_cmd += " -lllhttp";
+    // Remove 2>&1 suffix for build output visibility
+    if (compile_cmd.size() > 5 && compile_cmd.substr(compile_cmd.size() - 5) == " 2>&1") {
+        compile_cmd = compile_cmd.substr(0, compile_cmd.size() - 5);
     }
 
     if (system(compile_cmd.c_str()) != 0) {
