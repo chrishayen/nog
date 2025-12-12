@@ -199,8 +199,8 @@ inline std::string format_response(const Response& resp) {
     return response;
 }
 
-// Parse request from buffer
-inline Request parse_request(const char* buffer, size_t n) {
+// Async request reader - reads until complete HTTP message is received
+inline asio::awaitable<Request> read_request(asio::ip::tcp::socket& socket) {
     llhttp_t parser;
     llhttp_settings_t settings;
     llhttp_settings_init(&settings);
@@ -213,46 +213,34 @@ inline Request parse_request(const char* buffer, size_t n) {
     llhttp_init(&parser, HTTP_REQUEST, &settings);
     parser.data = &ctx;
 
+    char buffer[8192];
+
+    // First read - usually gets entire request for small GETs
+    size_t n = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
     llhttp_errno err = llhttp_execute(&parser, buffer, n);
 
-    Request req;
-    if (err == HPE_OK && ctx.message_complete) {
-        req.method = ctx.method;
-        req.path = ctx.url;
-        req.body = ctx.body;
-    } else {
-        req.method = "GET";
-        req.path = "/";
-        req.body = "";
+    if (err != HPE_OK && !ctx.message_complete) {
+        co_return Request{"GET", "/", ""};
     }
-    return req;
-}
 
-// Handle a single connection (sync handler)
-template<typename Handler>
-asio::awaitable<void> handle_connection(asio::ip::tcp::socket socket, Handler handler) {
-    try {
-        char buffer[8192];
-        size_t n = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
+    // Continue reading only if message incomplete (large POST, slow client)
+    while (!ctx.message_complete) {
+        n = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
+        err = llhttp_execute(&parser, buffer, n);
 
-        Request req = parse_request(buffer, n);
-        Response resp = handler(req);
-
-        std::string response_str = format_response(resp);
-        co_await asio::async_write(socket, asio::buffer(response_str), asio::use_awaitable);
-    } catch (const std::exception& e) {
-        // Connection closed or error
+        if (err != HPE_OK && !ctx.message_complete) {
+            co_return Request{"GET", "/", ""};
+        }
     }
+
+    co_return Request{ctx.method, ctx.url, ctx.body};
 }
 
 // Handle a single connection (async handler)
 template<typename Handler>
 asio::awaitable<void> handle_connection_async(asio::ip::tcp::socket socket, Handler handler) {
     try {
-        char buffer[8192];
-        size_t n = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
-
-        Request req = parse_request(buffer, n);
+        Request req = co_await read_request(socket);
         Response resp = co_await handler(req);
 
         std::string response_str = format_response(resp);
