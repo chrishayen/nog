@@ -76,7 +76,7 @@ string build_compile_cmd(const string& source, const string& output, const strin
 
         cmd += " -I" + include_path.string();
         cmd += " -L" + lib_path.string();
-        cmd += " -lnog_http -lllhttp";
+        cmd += " -lllhttp";
     }
 
     cmd += " 2>&1";
@@ -412,7 +412,7 @@ int build_file(const string& filename) {
 
         compile_cmd += " -I" + include_path.string();
         compile_cmd += " -L" + lib_path.string();
-        compile_cmd += " -lnog_http -lllhttp";
+        compile_cmd += " -lllhttp";
     }
 
     if (system(compile_cmd.c_str()) != 0) {
