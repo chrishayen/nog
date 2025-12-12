@@ -19,7 +19,6 @@
 #include "typechecker/typechecker.hpp"
 #include "project/project.hpp"
 #include "project/module.hpp"
-#include "docgen/docgen.hpp"
 
 using namespace std;
 namespace fs = filesystem;
@@ -495,75 +494,11 @@ int build_file(const string& path) {
 }
 
 /**
- * Generates HTML documentation for nog source files.
- * Input can be a single file or directory of .n files.
- * Output directory defaults to "docs/".
- */
-int generate_docs(int argc, char* argv[]) {
-    if (argc < 3) {
-        cerr << "Usage: nog doc <input> [--output <dir>]" << endl;
-        return 1;
-    }
-
-    string input = argv[2];
-    string output = "docs/";
-
-    // Parse --output flag
-    for (int i = 3; i < argc - 1; i++) {
-        if (string(argv[i]) == "--output" || string(argv[i]) == "-o") {
-            output = argv[i + 1];
-        }
-    }
-
-    if (!fs::exists(input)) {
-        cerr << "Error: Input path does not exist: " << input << endl;
-        return 1;
-    }
-
-    DocGen docgen;
-
-    if (fs::is_directory(input)) {
-        docgen.generate_directory(input, output);
-    } else {
-        // Single file - parse and generate
-        string source = read_file(input);
-
-        if (source.empty()) {
-            return 1;
-        }
-
-        Lexer lexer(source);
-        auto tokens = lexer.tokenize();
-        Parser parser(tokens);
-
-        try {
-            auto program = parser.parse();
-            string html = docgen.generate_file(*program, fs::path(input).filename().string());
-
-            fs::create_directories(output);
-            fs::path output_path = fs::path(output) / (fs::path(input).stem().string() + ".html");
-
-            ofstream out(output_path);
-            out << html;
-            out.close();
-
-            cout << "Generated: " << output_path.string() << endl;
-        } catch (const runtime_error& e) {
-            cerr << input << ": parse error: " << e.what() << endl;
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-/**
  * Main entry point. Usage:
  *   nog <file|dir>       - Build executable from source file or project directory
  *   nog run <file|dir>   - Build and run
  *   nog test <path>      - Run tests
  *   nog init <name>      - Initialize project
- *   nog doc <input>      - Generate HTML documentation
  */
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -571,7 +506,6 @@ int main(int argc, char* argv[]) {
         cerr << "       nog run <file|dir>" << endl;
         cerr << "       nog test <path>" << endl;
         cerr << "       nog init <name>" << endl;
-        cerr << "       nog doc <input> [--output <dir>]" << endl;
         return 1;
     }
 
@@ -594,10 +528,6 @@ int main(int argc, char* argv[]) {
         }
 
         return run_file(argv[2]);
-    }
-
-    if (cmd == "doc") {
-        return generate_docs(argc, argv);
     }
 
     return build_file(cmd);
