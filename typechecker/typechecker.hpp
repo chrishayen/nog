@@ -81,8 +81,59 @@ bool has_return(const std::vector<std::unique_ptr<ASTNode>>& stmts);
 // Statement checking (check_statement.cpp)
 void check_statement(TypeCheckerState& state, const ASTNode& stmt);
 
+// Statement checking helpers
+void check_variable_decl_stmt(TypeCheckerState& state, const VariableDecl& decl);
+void check_assignment_stmt(TypeCheckerState& state, const Assignment& assign);
+void check_field_assignment_stmt(TypeCheckerState& state, const FieldAssignment& fa);
+void check_return_stmt(TypeCheckerState& state, const ReturnStmt& ret);
+void check_if_stmt(TypeCheckerState& state, const IfStmt& if_stmt);
+void check_while_stmt(TypeCheckerState& state, const WhileStmt& while_stmt);
+void check_for_stmt(TypeCheckerState& state, const ForStmt& for_stmt);
+void check_select_stmt(TypeCheckerState& state, const SelectStmt& select_stmt);
+
 // Expression type inference (check_expression.cpp)
 TypeInfo infer_type(TypeCheckerState& state, const ASTNode& expr);
+
+// Literal type inference (check_literals.cpp)
+TypeInfo check_number_literal(TypeCheckerState& state, const NumberLiteral& lit);
+TypeInfo check_float_literal(TypeCheckerState& state, const FloatLiteral& lit);
+TypeInfo check_string_literal(TypeCheckerState& state, const StringLiteral& lit);
+TypeInfo check_bool_literal(TypeCheckerState& state, const BoolLiteral& lit);
+TypeInfo check_none_literal(TypeCheckerState& state, const NoneLiteral& lit);
+
+// Reference type inference (check_refs.cpp)
+TypeInfo check_variable_ref(TypeCheckerState& state, const VariableRef& var);
+TypeInfo check_function_ref(TypeCheckerState& state, const FunctionRef& fref);
+TypeInfo check_qualified_ref(TypeCheckerState& state, const QualifiedRef& qref);
+
+// Binary expression type inference (check_binary.cpp)
+TypeInfo check_binary_expr(TypeCheckerState& state, const BinaryExpr& bin);
+TypeInfo check_is_none(TypeCheckerState& state, const IsNone& expr);
+TypeInfo check_not_expr(TypeCheckerState& state, const NotExpr& not_expr);
+TypeInfo check_await_expr(TypeCheckerState& state, const AwaitExpr& await_expr);
+
+// Channel type inference (check_channel.cpp)
+TypeInfo check_channel_create(TypeCheckerState& state, const ChannelCreate& channel);
+TypeInfo check_channel_method(TypeCheckerState& state, const MethodCall& mcall, const std::string& element_type);
+
+// List type inference (check_list.cpp)
+TypeInfo check_list_create(TypeCheckerState& state, const ListCreate& list);
+TypeInfo check_list_literal(TypeCheckerState& state, const ListLiteral& list);
+TypeInfo check_list_method(TypeCheckerState& state, const MethodCall& mcall, const std::string& element_type);
+
+// Function call type inference (check_call.cpp)
+TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call);
+
+// Method call type inference (check_method_call.cpp)
+TypeInfo check_str_method(TypeCheckerState& state, const MethodCall& mcall);
+TypeInfo check_struct_method(TypeCheckerState& state, const MethodCall& mcall, const TypeInfo& obj_type);
+TypeInfo check_method_call(TypeCheckerState& state, const MethodCall& mcall);
+
+// Field access type inference (check_field.cpp)
+TypeInfo check_field_access(TypeCheckerState& state, const FieldAccess& access);
+
+// Struct literal type inference (check_struct_literal.cpp)
+TypeInfo check_struct_literal(TypeCheckerState& state, const StructLiteral& lit);
 
 // Type utilities (typechecker.cpp)
 bool is_primitive_type(const std::string& type);

@@ -32,10 +32,35 @@ add_library(nog_lib
     parser/parse_type.cpp
     parser/parse_import.cpp
     parser/parse_ffi.cpp
+    parser/parse_return.cpp
+    parser/parse_if.cpp
+    parser/parse_while.cpp
+    parser/parse_for_loop.cpp
+    parser/parse_select.cpp
+    parser/parse_variable.cpp
+    parser/parse_comparison.cpp
+    parser/parse_additive.cpp
+    parser/parse_primary.cpp
+    parser/parse_postfix.cpp
     typechecker/typechecker.cpp
     typechecker/check_expression.cpp
     typechecker/check_statement.cpp
     typechecker/check_function.cpp
+    typechecker/check_literals.cpp
+    typechecker/check_refs.cpp
+    typechecker/check_binary.cpp
+    typechecker/check_channel.cpp
+    typechecker/check_list.cpp
+    typechecker/check_call.cpp
+    typechecker/check_method_call.cpp
+    typechecker/check_field.cpp
+    typechecker/check_struct_literal.cpp
+    typechecker/check_variable_stmt.cpp
+    typechecker/check_return_stmt.cpp
+    typechecker/check_if_stmt.cpp
+    typechecker/check_while_stmt.cpp
+    typechecker/check_for_stmt.cpp
+    typechecker/check_select_stmt.cpp
     typechecker/strings.cpp
     typechecker/lists.cpp
     codegen/codegen.cpp
@@ -45,6 +70,22 @@ add_library(nog_lib
     codegen/emit_function.cpp
     codegen/emit_struct.cpp
     codegen/emit_ffi.cpp
+    codegen/emit_if.cpp
+    codegen/emit_while.cpp
+    codegen/emit_for.cpp
+    codegen/emit_select.cpp
+    codegen/emit_print.cpp
+    codegen/emit_assert.cpp
+    codegen/emit_variable.cpp
+    codegen/emit_literals.cpp
+    codegen/emit_refs.cpp
+    codegen/emit_binary.cpp
+    codegen/emit_await.cpp
+    codegen/emit_channel.cpp
+    codegen/emit_list.cpp
+    codegen/emit_method_call.cpp
+    codegen/emit_function_call.cpp
+    codegen/emit_field.cpp
     project/project.cpp
     project/module.cpp
     stdlib/http.cpp
