@@ -26,6 +26,8 @@ static unordered_map<string, TokenType> keywords = {
     {"if", TokenType::IF},
     {"else", TokenType::ELSE},
     {"while", TokenType::WHILE},
+    {"for", TokenType::FOR},
+    {"in", TokenType::IN},
     {"none", TokenType::NONE},
     {"is", TokenType::IS},
     {"import", TokenType::IMPORT},
@@ -132,6 +134,7 @@ Token Lexer::read_number() {
     while (isdigit(current()) || current() == '.') {
         if (current() == '.') {
             if (is_float) break;  // second dot ends the number
+            if (peek() == '.') break;  // .. is range operator, not float
             is_float = true;
         }
         value += current();
@@ -222,8 +225,14 @@ vector<Token> Lexer::tokenize() {
                 advance();
             }
         } else if (current() == '.') {
-            tokens.push_back({TokenType::DOT, ".", start_line});
-            advance();
+            if (peek() == '.') {
+                tokens.push_back({TokenType::DOTDOT, "..", start_line});
+                advance();
+                advance();
+            } else {
+                tokens.push_back({TokenType::DOT, ".", start_line});
+                advance();
+            }
         } else if (current() == ':') {
             if (peek() == '=') {
                 tokens.push_back({TokenType::COLON_ASSIGN, ":=", start_line});

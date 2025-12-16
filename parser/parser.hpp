@@ -76,6 +76,7 @@ std::unique_ptr<VariableDecl> parse_inferred_decl(ParserState& state);
 std::unique_ptr<ReturnStmt> parse_return(ParserState& state);
 std::unique_ptr<IfStmt> parse_if(ParserState& state);
 std::unique_ptr<WhileStmt> parse_while(ParserState& state);
+std::unique_ptr<ForStmt> parse_for(ParserState& state);
 std::unique_ptr<SelectStmt> parse_select(ParserState& state);
 
 // Expression parsing (parse_expression.cpp)

@@ -106,6 +106,37 @@ void check_statement(TypeCheckerState& state, const ASTNode& stmt) {
         for (const auto& s : while_stmt->body) {
             check_statement(state, *s);
         }
+    } else if (auto* for_stmt = dynamic_cast<const ForStmt*>(&stmt)) {
+        if (for_stmt->kind == ForLoopKind::Range) {
+            TypeInfo start_type = infer_type(state, *for_stmt->range_start);
+            TypeInfo end_type = infer_type(state, *for_stmt->range_end);
+
+            if (start_type.base_type != "int") {
+                error(state, "for range start must be int, got '" + start_type.base_type + "'", for_stmt->line);
+            }
+
+            if (end_type.base_type != "int") {
+                error(state, "for range end must be int, got '" + end_type.base_type + "'", for_stmt->line);
+            }
+
+            state.locals[for_stmt->loop_var] = {"int", false, false};
+        } else {
+            TypeInfo iter_type = infer_type(state, *for_stmt->iterable);
+
+            if (iter_type.base_type.rfind("List<", 0) != 0) {
+                error(state, "for-each requires a List, got '" + iter_type.base_type + "'", for_stmt->line);
+            } else {
+                size_t start = 5;
+                size_t end = iter_type.base_type.find('>', start);
+                string element_type = iter_type.base_type.substr(start, end - start);
+
+                state.locals[for_stmt->loop_var] = {element_type, false, false};
+            }
+        }
+
+        for (const auto& s : for_stmt->body) {
+            check_statement(state, *s);
+        }
     } else if (auto* select_stmt = dynamic_cast<const SelectStmt*>(&stmt)) {
         for (const auto& select_case : select_stmt->cases) {
             TypeInfo channel_type = infer_type(state, *select_case->channel);

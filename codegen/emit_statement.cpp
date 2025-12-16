@@ -82,6 +82,34 @@ string while_stmt(const string& condition, const vector<string>& body) {
 }
 
 /**
+ * Emits a range-based for loop: for (int var = start; var < end; var++)
+ */
+string for_range_stmt(const string& var, const string& start, const string& end, const vector<string>& body) {
+    string out = fmt::format("for (int {} = {}; {} < {}; {}++) {{\n", var, start, var, end, var);
+
+    for (const auto& stmt : body) {
+        out += "\t" + stmt + "\n";
+    }
+
+    out += "}";
+    return out;
+}
+
+/**
+ * Emits a foreach loop: for (auto& var : collection)
+ */
+string for_each_stmt(const string& var, const string& collection, const vector<string>& body) {
+    string out = fmt::format("for (auto& {} : {}) {{\n", var, collection);
+
+    for (const auto& stmt : body) {
+        out += "\t" + stmt + "\n";
+    }
+
+    out += "}";
+    return out;
+}
+
+/**
  * Emits std::cout for multiple values.
  */
 string print_multi(const vector<string>& args) {
@@ -238,6 +266,29 @@ string generate_statement(CodeGenState& state, const ASTNode& node) {
         }
 
         return while_stmt(emit(state, *stmt->condition), body);
+    }
+
+    if (auto* stmt = dynamic_cast<const ForStmt*>(&node)) {
+        vector<string> body;
+
+        for (const auto& s : stmt->body) {
+            body.push_back(generate_statement(state, *s));
+        }
+
+        if (stmt->kind == ForLoopKind::Range) {
+            return for_range_stmt(
+                stmt->loop_var,
+                emit(state, *stmt->range_start),
+                emit(state, *stmt->range_end),
+                body
+            );
+        } else {
+            return for_each_stmt(
+                stmt->loop_var,
+                emit(state, *stmt->iterable),
+                body
+            );
+        }
     }
 
     if (auto* select_stmt = dynamic_cast<const SelectStmt*>(&node)) {

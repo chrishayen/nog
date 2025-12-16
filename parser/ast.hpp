@@ -226,6 +226,22 @@ struct WhileStmt : ASTNode {
     vector<unique_ptr<ASTNode>> body;    ///< Loop body statements
 };
 
+/** @brief Distinguishes for loop types */
+enum class ForLoopKind {
+    Range,    ///< for i in 0..10
+    Foreach   ///< for item in collection
+};
+
+/** @brief For loop: for var in range/collection { } */
+struct ForStmt : ASTNode {
+    string loop_var;                     ///< Loop variable name
+    ForLoopKind kind;                    ///< Range or Foreach
+    unique_ptr<ASTNode> range_start;     ///< Start value (Range only)
+    unique_ptr<ASTNode> range_end;       ///< End value (Range only)
+    unique_ptr<ASTNode> iterable;        ///< Collection to iterate (Foreach only)
+    vector<unique_ptr<ASTNode>> body;    ///< Loop body statements
+};
+
 //------------------------------------------------------------------------------
 // Definitions - Top-level declarations
 //------------------------------------------------------------------------------
