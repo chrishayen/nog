@@ -35,6 +35,10 @@ TypeInfo infer_type(TypeCheckerState& state, const ASTNode& expr) {
         return check_none_literal(state, *none);
     }
 
+    if (auto* ch = dynamic_cast<const CharLiteral*>(&expr)) {
+        return check_char_literal(state, *ch);
+    }
+
     if (auto* var = dynamic_cast<const VariableRef*>(&expr)) {
         return check_variable_ref(state, *var);
     }

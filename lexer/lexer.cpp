@@ -8,6 +8,7 @@
 
 #include "lexer.hpp"
 #include <unordered_map>
+#include <stdexcept>
 
 using namespace std;
 
@@ -101,6 +102,29 @@ Token Lexer::read_string() {
 
     advance();  // skip closing quote
     return {TokenType::STRING, value, start_line};
+}
+
+/**
+ * Reads a single-quoted character literal. Assumes current char is '\''.
+ * Format: 'c' where c is a single character.
+ */
+Token Lexer::read_char() {
+    int start_line = line;
+    advance();  // skip opening quote
+
+    if (current() == '\0' || current() == '\'') {
+        throw runtime_error("Empty character literal at line " + to_string(line));
+    }
+
+    string value(1, current());
+    advance();  // consume the character
+
+    if (current() != '\'') {
+        throw runtime_error("Unterminated character literal at line " + to_string(line));
+    }
+
+    advance();  // skip closing quote
+    return {TokenType::CHAR_LITERAL, value, start_line};
 }
 
 /**
@@ -293,6 +317,8 @@ vector<Token> Lexer::tokenize() {
             advance();
         } else if (current() == '"') {
             tokens.push_back(read_string());
+        } else if (current() == '\'') {
+            tokens.push_back(read_char());
         } else if (isdigit(current())) {
             tokens.push_back(read_number());
         } else if (isalpha(current()) || current() == '_') {

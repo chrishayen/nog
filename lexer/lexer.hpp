@@ -48,6 +48,7 @@ private:
     void advance();       ///< Moves to next character, tracking newlines
     void skip_whitespace();   ///< Skips spaces, tabs, newlines
     Token read_string();      ///< Reads a double-quoted string literal
+    Token read_char();        ///< Reads a single-quoted character literal
     Token read_identifier();  ///< Reads identifier or keyword
     Token read_number();      ///< Reads integer or float literal
 };

@@ -54,6 +54,7 @@ std::string number_literal(const std::string& value);
 std::string float_literal(const std::string& value);
 std::string bool_literal(bool value);
 std::string none_literal();
+std::string char_literal(char value);
 
 // References (emit_refs.cpp)
 std::string variable_ref(const std::string& name);

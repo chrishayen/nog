@@ -145,6 +145,12 @@ unique_ptr<ASTNode> parse_primary(ParserState& state) {
         return make_unique<StringLiteral>(tok.value);
     }
 
+    if (check(state, TokenType::CHAR_LITERAL)) {
+        Token tok = current(state);
+        advance(state);
+        return make_unique<CharLiteral>(tok.value[0], tok.line);
+    }
+
     if (check(state, TokenType::TRUE)) {
         advance(state);
         return make_unique<BoolLiteral>(true);

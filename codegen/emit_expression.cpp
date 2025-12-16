@@ -40,6 +40,10 @@ string emit(CodeGenState& state, const ASTNode& node) {
         return none_literal();
     }
 
+    if (auto* lit = dynamic_cast<const CharLiteral*>(&node)) {
+        return char_literal(lit->value);
+    }
+
     if (auto* ref = dynamic_cast<const VariableRef*>(&node)) {
         return variable_ref(ref->name);
     }

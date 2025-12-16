@@ -75,3 +75,15 @@ fn test_str_method_chaining() {
     sub := s.substr(0, 5);
     assert_eq(sub.length(), 5);
 }
+
+fn test_str_concat() {
+    s := "hello" + " " + "world";
+    assert_eq(s, "hello world");
+}
+
+fn test_str_concat_variables() {
+    a := "foo";
+    b := "bar";
+    c := a + b;
+    assert_eq(c, "foobar");
+}

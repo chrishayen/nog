@@ -192,6 +192,7 @@ enum class TokenType {
     STRING,
     NUMBER,
     FLOAT,
+    CHAR_LITERAL,
 
     // Documentation
     DOC_COMMENT,  ///< /// doc comment text

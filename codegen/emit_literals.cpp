@@ -45,4 +45,11 @@ string none_literal() {
     return "std::nullopt";
 }
 
+/**
+ * Emits a C++ char literal.
+ */
+string char_literal(char value) {
+    return fmt::format("'{}'", value);
+}
+
 } // namespace codegen

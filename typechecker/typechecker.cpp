@@ -170,6 +170,19 @@ bool types_compatible(const TypeInfo& expected, const TypeInfo& actual) {
         return true;
     }
 
+    // Numeric type conversions
+    if (expected.base_type == "u32" && actual.base_type == "int") {
+        return true;
+    }
+
+    if (expected.base_type == "u64" && actual.base_type == "int") {
+        return true;
+    }
+
+    if (expected.base_type == "f32" && actual.base_type == "f64") {
+        return true;
+    }
+
     return expected.base_type == actual.base_type;
 }
 

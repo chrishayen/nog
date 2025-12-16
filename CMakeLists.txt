@@ -35,7 +35,7 @@ add_library(nog_lib
     parser/parse_return.cpp
     parser/parse_if.cpp
     parser/parse_while.cpp
-    parser/parse_for_loop.cpp
+    parser/parse_for.cpp
     parser/parse_select.cpp
     parser/parse_variable.cpp
     parser/parse_comparison.cpp
@@ -51,7 +51,7 @@ add_library(nog_lib
     typechecker/check_binary.cpp
     typechecker/check_channel.cpp
     typechecker/check_list.cpp
-    typechecker/check_call.cpp
+    typechecker/check_function_call.cpp
     typechecker/check_method_call.cpp
     typechecker/check_field.cpp
     typechecker/check_struct_literal.cpp
