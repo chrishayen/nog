@@ -38,7 +38,6 @@ std::string generate_with_imports(
     bool test_mode = false
 );
 std::string generate_module_namespace(CodeGenState& state, const std::string& name, const Module& module);
-std::string generate_select(CodeGenState& state, const SelectStmt& stmt);
 std::string generate_extern_declarations(const std::unique_ptr<Program>& program);
 
 // Type utilities (emit_type.cpp)
@@ -59,6 +58,7 @@ std::string method_call(const std::string& object, const std::string& method, co
 
 // Statement emission (emit_statement.cpp)
 std::string generate_statement(CodeGenState& state, const ASTNode& node);
+std::string generate_select(CodeGenState& state, const SelectStmt& stmt);
 std::string variable_decl(const std::string& type, const std::string& name, const std::string& value, bool is_optional = false);
 std::string return_stmt(const std::string& value);
 std::string assignment(const std::string& name, const std::string& value);
