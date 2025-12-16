@@ -68,6 +68,10 @@ string emit(CodeGenState& state, const ASTNode& node) {
         return emit_await(state, *expr);
     }
 
+    if (auto* expr = dynamic_cast<const ParenExpr*>(&node)) {
+        return "(" + emit(state, *expr->value) + ")";
+    }
+
     if (auto* channel = dynamic_cast<const ChannelCreate*>(&node)) {
         return emit_channel_create(*channel);
     }

@@ -112,6 +112,8 @@
  * diff := a - b;
  * prod := a * b;
  * quot := a / b;
+ * value := 1 + 2 * 3;  // value is 7
+ * @note Precedence: `*` and `/` bind tighter than `+` and `-` (left-associative within each level).
  */
 
 /**

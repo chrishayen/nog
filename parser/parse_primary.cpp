@@ -4,6 +4,7 @@
  */
 
 #include "parser.hpp"
+#include <stdexcept>
 
 using namespace std;
 
@@ -40,6 +41,22 @@ unique_ptr<ASTNode> parse_primary(ParserState& state) {
         not_expr->value = parse_primary(state);
         not_expr->line = start_line;
         return not_expr;
+    }
+
+    // Parenthesized expression: (expr)
+    if (check(state, TokenType::LPAREN)) {
+        Token lparen = consume(state, TokenType::LPAREN);
+
+        // Disallow empty parentheses to avoid consuming ')' as part of an invalid expression.
+        if (check(state, TokenType::RPAREN)) {
+            throw runtime_error("expected expression after '(' at line " + to_string(lparen.line));
+        }
+
+        auto group = make_unique<ParenExpr>();
+        group->line = lparen.line;
+        group->value = parse_expression(state);
+        consume(state, TokenType::RPAREN);
+        return group;
     }
 
     // Handle await expression: await expr

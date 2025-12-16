@@ -142,6 +142,11 @@ struct AwaitExpr : ASTNode {
     unique_ptr<ASTNode> value;  ///< The awaitable expression
 };
 
+/** @brief Parenthesized expression: (expr) */
+struct ParenExpr : ASTNode {
+    unique_ptr<ASTNode> value;  ///< The grouped expression
+};
+
 //------------------------------------------------------------------------------
 // Channels - Concurrent communication primitives
 //------------------------------------------------------------------------------

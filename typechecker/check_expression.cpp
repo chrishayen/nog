@@ -67,6 +67,14 @@ TypeInfo infer_type(TypeCheckerState& state, const ASTNode& expr) {
         return check_await_expr(state, *await_expr);
     }
 
+    if (auto* paren = dynamic_cast<const ParenExpr*>(&expr)) {
+        if (!paren->value) {
+            return {"unknown", false, false};
+        }
+
+        return infer_type(state, *paren->value);
+    }
+
     if (auto* channel = dynamic_cast<const ChannelCreate*>(&expr)) {
         return check_channel_create(state, *channel);
     }

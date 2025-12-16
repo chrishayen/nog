@@ -362,6 +362,23 @@ prod := a * b;
 quot := a / b;
 ```
 
+> Precedence: `*` and `/` bind tighter than `+` and `-` (left-associative within each level).
+
+### Parentheses
+
+Group expressions to override precedence and enable postfix access on expression results.
+
+**Syntax:**
+```
+(expr)
+```
+
+**Example:**
+```nog
+result := (1 + 2) * 3;
+len := ("hi" + "there").length();
+```
+
 ### Comparison Operators
 
 Compare values.
@@ -550,4 +567,3 @@ Person :: struct {
     name str
 }
 ```
-
