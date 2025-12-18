@@ -42,7 +42,6 @@ void check_method(TypeCheckerState& state, const MethodDef& method) {
     state.local_scopes.clear();
     push_scope(state);  // method scope (parameters + body)
     state.current_struct = method.struct_name;
-    state.in_async_context = method.is_async;
 
     if (method.return_type.empty()) {
         state.current_return = {"void", false, true};
@@ -71,7 +70,6 @@ void check_method(TypeCheckerState& state, const MethodDef& method) {
         error(state, "method '" + method.name + "' must return a value of type '" + method.return_type + "'", method.line);
     }
 
-    state.in_async_context = false;
     state.current_struct.clear();
 }
 
@@ -82,7 +80,6 @@ void check_function(TypeCheckerState& state, const FunctionDef& func) {
     state.local_scopes.clear();
     push_scope(state);  // function scope (parameters + body)
     state.current_struct.clear();
-    state.in_async_context = func.is_async;
 
     if (func.return_type.empty()) {
         state.current_return = {"void", false, true};
@@ -105,8 +102,6 @@ void check_function(TypeCheckerState& state, const FunctionDef& func) {
     if (!func.return_type.empty() && !has_return(func.body)) {
         error(state, "function '" + func.name + "' must return a value of type '" + func.return_type + "'", func.line);
     }
-
-    state.in_async_context = false;
 }
 
 } // namespace typechecker

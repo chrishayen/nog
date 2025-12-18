@@ -104,16 +104,8 @@ unique_ptr<Program> parse(ParserState& state) {
         // Check for visibility annotation
         Visibility vis = parse_visibility(state);
 
-        // Check for async keyword (can precede fn or method definition)
-        bool is_async = false;
-
-        if (check(state, TokenType::ASYNC)) {
-            is_async = true;
-            advance(state);
-        }
-
         if (check(state, TokenType::FN)) {
-            auto fn = parse_function(state, vis, is_async);
+            auto fn = parse_function(state, vis);
             fn->doc_comment = doc;
             program->functions.push_back(move(fn));
             continue;
@@ -125,7 +117,7 @@ unique_ptr<Program> parse(ParserState& state) {
         }
 
         // Check for struct definition: Name :: struct { ... }
-        // or method definition: [async] Name :: method_name(...) -> type { ... }
+        // or method definition: Name :: method_name(...) -> type { ... }
         size_t saved_pos = state.pos;
         Token name_tok = current(state);
         string name = name_tok.value;
@@ -147,7 +139,7 @@ unique_ptr<Program> parse(ParserState& state) {
         }
 
         if (check(state, TokenType::IDENT)) {
-            auto m = parse_method_def(state, name, vis, is_async);
+            auto m = parse_method_def(state, name, vis);
             m->doc_comment = doc;
             program->methods.push_back(move(m));
             continue;

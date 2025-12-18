@@ -29,18 +29,8 @@ TypeInfo check_list_literal(TypeCheckerState& state, const ListLiteral& list) {
 
     TypeInfo first_type = infer_type(state, *list.elements[0]);
 
-    if (first_type.is_awaitable) {
-        error(state, "list literal cannot contain awaitable values (did you forget 'await'?)", list.line);
-        return {"unknown", false, false};
-    }
-
     for (size_t i = 1; i < list.elements.size(); i++) {
         TypeInfo elem_type = infer_type(state, *list.elements[i]);
-
-        if (elem_type.is_awaitable) {
-            error(state, "list literal cannot contain awaitable values (did you forget 'await'?)", list.line);
-            return {"unknown", false, false};
-        }
 
         if (elem_type.base_type != first_type.base_type) {
             error(state, "list literal has mixed types: '" + format_type(first_type) +

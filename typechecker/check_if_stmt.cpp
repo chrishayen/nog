@@ -15,7 +15,7 @@ namespace typechecker {
 void check_if_stmt(TypeCheckerState& state, const IfStmt& if_stmt) {
     TypeInfo cond_type = infer_type(state, *if_stmt.condition);
 
-    if (cond_type.is_awaitable || (cond_type.base_type != "bool" && !cond_type.is_optional)) {
+    if (cond_type.base_type != "bool" && !cond_type.is_optional) {
         error(state, "if condition must be bool or optional type, got '" + format_type(cond_type) + "'", if_stmt.line);
     }
 

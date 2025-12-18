@@ -135,8 +135,8 @@ string generate_statement(CodeGenState& state, const ASTNode& node) {
         return generate_select(state, *select_stmt);
     }
 
-    if (auto* await_expr = dynamic_cast<const AwaitExpr*>(&node)) {
-        return emit(state, node) + ";";
+    if (auto* go_spawn = dynamic_cast<const GoSpawn*>(&node)) {
+        return emit_go_spawn(state, *go_spawn) + ";";
     }
 
     if (auto* call = dynamic_cast<const MethodCall*>(&node)) {

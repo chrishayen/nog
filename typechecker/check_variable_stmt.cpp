@@ -61,11 +61,6 @@ void check_assignment_stmt(TypeCheckerState& state, const Assignment& assign) {
 void check_field_assignment_stmt(TypeCheckerState& state, const FieldAssignment& fa) {
     TypeInfo obj_type = infer_type(state, *fa.object);
 
-    if (obj_type.is_awaitable) {
-        error(state, "cannot assign to field on '" + format_type(obj_type) + "' (did you forget 'await'?)", fa.line);
-        return;
-    }
-
     if (state.structs.find(obj_type.base_type) == state.structs.end()) {
         error(state, "cannot access field on non-struct type '" + format_type(obj_type) + "'", fa.line);
         return;

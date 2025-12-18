@@ -86,18 +86,8 @@ TypeInfo check_struct_method(TypeCheckerState& state, const MethodCall& mcall, c
         }
     }
 
-    TypeInfo ret_type = method->return_type.empty() ? TypeInfo{"void", false, true}
-                                                    : TypeInfo{method->return_type, false, false};
-
-    if (method->is_async) {
-        if (!state.in_async_context) {
-            error(state, "async method '" + mcall.method_name + "' can only be called inside async functions", mcall.line);
-        }
-
-        return make_awaitable(ret_type);
-    }
-
-    return ret_type;
+    return method->return_type.empty() ? TypeInfo{"void", false, true}
+                                       : TypeInfo{method->return_type, false, false};
 }
 
 /**
@@ -105,12 +95,6 @@ TypeInfo check_struct_method(TypeCheckerState& state, const MethodCall& mcall, c
  */
 TypeInfo check_method_call(TypeCheckerState& state, const MethodCall& mcall) {
     TypeInfo obj_type = infer_type(state, *mcall.object);
-
-    if (obj_type.is_awaitable) {
-        error(state, "cannot call method on '" + format_type(obj_type) + "' (did you forget 'await'?)", mcall.line);
-        return {"unknown", false, false};
-    }
-
     mcall.object_type = obj_type.base_type;  // Store for codegen
 
     if (obj_type.base_type.rfind("Channel<", 0) == 0) {

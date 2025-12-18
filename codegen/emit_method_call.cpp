@@ -42,15 +42,14 @@ string emit_method_call(CodeGenState& state, const MethodCall& call) {
         }
     }
 
-    // Handle channel methods using ASIO experimental channel
+    // Handle channel methods - direct calls on nog::rt::Channel
     if (call.method_name == "send") {
         string val = args.empty() ? "" : args[0];
-        return emit(state, *call.object) + ".async_send(asio::error_code{}, " + val + ", asio::use_awaitable)";
+        return emit(state, *call.object) + ".send(" + val + ")";
     }
 
     if (call.method_name == "recv") {
-        // Return raw async call - will be wrapped by AwaitExpr or used in select
-        return emit(state, *call.object) + ".async_receive(asio::use_awaitable)";
+        return emit(state, *call.object) + ".recv()";
     }
 
     string obj_str = emit(state, *call.object);

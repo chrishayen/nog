@@ -11,52 +11,43 @@ using namespace std;
 namespace codegen {
 
 /**
- * Generates C++ for a select statement using ASIO awaitable operators.
+ * Generates C++ for a select statement using polling with stackful coroutines.
  */
 string generate_select(CodeGenState& state, const SelectStmt& stmt) {
     string out;
 
-    vector<string> ops;
+    // Generate a polling loop that checks each channel
+    out += "while (true) {\n";
+
+    size_t case_idx = 0;
 
     for (const auto& c : stmt.cases) {
         string channel_code = emit(state, *c->channel);
 
         if (c->operation == "recv") {
-            ops.push_back(channel_code + ".async_receive(asio::as_tuple(asio::use_awaitable))");
-        } else if (c->operation == "send") {
-            string send_val = c->send_value ? emit(state, *c->send_value) : "";
-            ops.push_back(channel_code + ".async_send(asio::error_code{}, " + send_val + ", asio::use_awaitable)");
-        }
-    }
+            out += "\t{\n";
+            out += "\t\tauto _try_result = " + channel_code + ".try_recv();\n";
+            out += "\t\tif (_try_result.first) {\n";
 
-    out += "auto _sel_result = co_await (";
+            if (!c->binding_name.empty()) {
+                out += "\t\t\tauto " + c->binding_name + " = _try_result.second;\n";
+            }
 
-    for (size_t i = 0; i < ops.size(); i++) {
-        out += ops[i];
+            for (const auto& s : c->body) {
+                out += "\t\t\t" + generate_statement(state, *s) + "\n";
+            }
 
-        if (i < ops.size() - 1) {
-            out += " || ";
-        }
-    }
-
-    out += ");\n";
-
-    size_t case_idx = 0;
-
-    for (const auto& c : stmt.cases) {
-        out += "if (_sel_result.index() == " + to_string(case_idx) + ") {\n";
-
-        if (c->operation == "recv" && !c->binding_name.empty()) {
-            out += "\tauto " + c->binding_name + " = std::get<1>(std::get<" + to_string(case_idx) + ">(_sel_result));\n";
+            out += "\t\t\tbreak;\n";
+            out += "\t\t}\n";
+            out += "\t}\n";
         }
 
-        for (const auto& s : c->body) {
-            out += "\t" + generate_statement(state, *s) + "\n";
-        }
-
-        out += "}\n";
         case_idx++;
     }
+
+    // Yield to let other goroutines run
+    out += "\tboost::asio::post(nog::rt::io_context(), nog::rt::yield());\n";
+    out += "}\n";
 
     return out;
 }

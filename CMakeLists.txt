@@ -9,6 +9,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 find_package(fmt REQUIRED)
 find_package(tomlplusplus REQUIRED)
+find_package(Boost REQUIRED COMPONENTS context)
 
 # Fetch llhttp for HTTP parsing
 include(FetchContent)
@@ -80,7 +81,7 @@ add_library(nog_lib
     codegen/emit_literals.cpp
     codegen/emit_refs.cpp
     codegen/emit_binary.cpp
-    codegen/emit_await.cpp
+    codegen/emit_go_spawn.cpp
     codegen/emit_channel.cpp
     codegen/emit_list.cpp
     codegen/emit_method_call.cpp
@@ -132,11 +133,11 @@ add_library(nog_http_runtime STATIC
 )
 target_compile_features(nog_http_runtime PRIVATE cxx_std_23)
 target_include_directories(nog_http_runtime PRIVATE
-    ${CMAKE_SOURCE_DIR}/external/asio/include
+    ${Boost_INCLUDE_DIRS}
     ${CMAKE_BINARY_DIR}/include
     ${llhttp_SOURCE_DIR}/include
 )
-target_link_libraries(nog_http_runtime llhttp_static)
+target_link_libraries(nog_http_runtime llhttp_static Boost::context)
 add_dependencies(nog_http_runtime nog_runtime_headers)
 
 # Copy nog_http library to lib/ after build
@@ -164,7 +165,7 @@ add_custom_command(
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/include/nog/http.hpp.gch
     COMMAND ${CMAKE_CXX_COMPILER} -std=c++23
-            -I${CMAKE_SOURCE_DIR}/external/asio/include
+            -I${Boost_INCLUDE_DIRS}
             -I${CMAKE_BINARY_DIR}/include
             -x c++-header
             ${CMAKE_BINARY_DIR}/include/nog/http.hpp

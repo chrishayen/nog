@@ -176,11 +176,10 @@ unique_ptr<Program> create_http_module() {
     not_found_fn->return_type = "http.Response";
     program->functions.push_back(move(not_found_fn));
 
-    // async fn serve(int port, fn(http.Request) -> http.Response handler)
+    // fn serve(int port, fn(http.Request) -> http.Response handler)
     auto serve_fn = make_unique<FunctionDef>();
     serve_fn->name = "serve";
     serve_fn->visibility = Visibility::Public;
-    serve_fn->is_async = true;
     serve_fn->params.push_back({"int", "port"});
     serve_fn->params.push_back({"fn(http.Request) -> http.Response", "handler"});
     program->functions.push_back(move(serve_fn));
@@ -211,12 +210,11 @@ unique_ptr<Program> create_http_module() {
     post_method->params.push_back({"fn(http.Request) -> http.Response", "handler"});
     program->methods.push_back(move(post_method));
 
-    // App :: listen(self, int port) async
+    // App :: listen(self, int port)
     auto listen_method = make_unique<MethodDef>();
     listen_method->struct_name = "App";
     listen_method->name = "listen";
     listen_method->visibility = Visibility::Public;
-    listen_method->is_async = true;
     listen_method->params.push_back({"http.App", "self"});
     listen_method->params.push_back({"int", "port"});
     program->methods.push_back(move(listen_method));

@@ -49,18 +49,8 @@ TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call) 
             }
         }
 
-        TypeInfo ret_type = func->return_type.empty() ? TypeInfo{"void", false, true}
-                                                      : TypeInfo{func->return_type, false, false};
-
-        if (func->is_async) {
-            if (!state.in_async_context) {
-                error(state, "async function '" + call.name + "' can only be called inside async functions", call.line);
-            }
-
-            return make_awaitable(ret_type);
-        }
-
-        return ret_type;
+        return func->return_type.empty() ? TypeInfo{"void", false, true}
+                                         : TypeInfo{func->return_type, false, false};
     }
 
     if (const TypeInfo* local = lookup_local(state, call.name)) {
@@ -95,18 +85,8 @@ TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call) 
             }
         }
 
-        TypeInfo ret_type = func->return_type.empty() ? TypeInfo{"void", false, true}
-                                                      : TypeInfo{func->return_type, false, false};
-
-        if (func->is_async) {
-            if (!state.in_async_context) {
-                error(state, "async function '" + call.name + "' can only be called inside async functions", call.line);
-            }
-
-            return make_awaitable(ret_type);
-        }
-
-        return ret_type;
+        return func->return_type.empty() ? TypeInfo{"void", false, true}
+                                         : TypeInfo{func->return_type, false, false};
     }
 
     if (state.extern_functions.find(call.name) != state.extern_functions.end()) {

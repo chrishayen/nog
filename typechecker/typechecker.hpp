@@ -30,13 +30,10 @@ struct TypeInfo {
     std::string base_type;
     bool is_optional = false;
     bool is_void = false;
-    // Marks expressions that produce a value that must be awaited to get the
-    // underlying type (e.g., async fn calls, Channel.send/recv).
-    bool is_awaitable = false;
 
     bool operator==(const TypeInfo& other) const {
         return base_type == other.base_type && is_optional == other.is_optional &&
-               is_void == other.is_void && is_awaitable == other.is_awaitable;
+               is_void == other.is_void;
     }
 
     bool operator!=(const TypeInfo& other) const {
@@ -71,7 +68,6 @@ struct TypeCheckerState {
     std::string current_struct;
     TypeInfo current_return;
     std::string filename;
-    bool in_async_context = false;
 
     std::vector<TypeError> errors;
 };
@@ -140,7 +136,9 @@ TypeInfo check_qualified_ref(TypeCheckerState& state, const QualifiedRef& qref);
 TypeInfo check_binary_expr(TypeCheckerState& state, const BinaryExpr& bin);
 TypeInfo check_is_none(TypeCheckerState& state, const IsNone& expr);
 TypeInfo check_not_expr(TypeCheckerState& state, const NotExpr& not_expr);
-TypeInfo check_await_expr(TypeCheckerState& state, const AwaitExpr& await_expr);
+
+// Concurrency (check_statement.cpp)
+void check_go_spawn(TypeCheckerState& state, const GoSpawn& spawn);
 
 // Channel type inference (check_channel.cpp)
 TypeInfo check_channel_create(TypeCheckerState& state, const ChannelCreate& channel);
@@ -170,7 +168,6 @@ bool is_primitive_type(const std::string& type);
 bool is_valid_type(const TypeCheckerState& state, const std::string& type);
 bool types_compatible(const TypeInfo& expected, const TypeInfo& actual);
 std::string format_type(const TypeInfo& type);
-TypeInfo make_awaitable(const TypeInfo& inner);
 const StructDef* get_struct(const TypeCheckerState& state, const std::string& name);
 const MethodDef* get_method(const TypeCheckerState& state, const std::string& struct_name, const std::string& method_name);
 std::string get_field_type(const TypeCheckerState& state, const std::string& struct_name, const std::string& field_name);

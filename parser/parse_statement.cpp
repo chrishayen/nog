@@ -46,11 +46,9 @@ unique_ptr<ASTNode> parse_statement(ParserState& state) {
         return parse_select(state);
     }
 
-    // await expression as statement: await expr;
-    if (check(state, TokenType::AWAIT)) {
-        auto expr = parse_expression(state);
-        consume(state, TokenType::SEMICOLON);
-        return expr;
+    // go statement: go func();
+    if (check(state, TokenType::GO)) {
+        return parse_go_spawn(state);
     }
 
     // typed variable: int x = 5
@@ -267,6 +265,27 @@ unique_ptr<FunctionCall> parse_function_call(ParserState& state) {
     consume(state, TokenType::RPAREN);
     consume(state, TokenType::SEMICOLON);
     return call;
+}
+
+/**
+ * @nog_syntax go spawn
+ * @category Concurrency
+ * @order 1
+ * @description Spawn a goroutine to run a function call concurrently.
+ * @syntax go func();
+ * @example
+ * go worker(ch);
+ * go process_data();
+ */
+unique_ptr<GoSpawn> parse_go_spawn(ParserState& state) {
+    int start_line = current(state).line;
+    consume(state, TokenType::GO);
+
+    auto spawn = make_unique<GoSpawn>();
+    spawn->line = start_line;
+    spawn->call = parse_expression(state);
+    consume(state, TokenType::SEMICOLON);
+    return spawn;
 }
 
 } // namespace parser

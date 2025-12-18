@@ -18,16 +18,8 @@ namespace codegen {
  * Emits a complete function definition with parameters, return type, and body.
  */
 string function_def(const string& name, const vector<FunctionParam>& params,
-                    const string& return_type, const vector<string>& body,
-                    bool is_async) {
-    string rt;
-
-    if (is_async) {
-        string inner_type = return_type.empty() ? "void" : map_type(return_type);
-        rt = "asio::awaitable<" + inner_type + ">";
-    } else {
-        rt = return_type.empty() ? "void" : map_type(return_type);
-    }
+                    const string& return_type, const vector<string>& body) {
+    string rt = return_type.empty() ? "void" : map_type(return_type);
 
     vector<string> param_strs;
 
@@ -41,12 +33,6 @@ string function_def(const string& name, const vector<FunctionParam>& params,
         out += fmt::format("\t{}\n", stmt);
     }
 
-    // Async functions need at least one co_await/co_return to be recognized as coroutines
-    // Add implicit co_return for void async functions without explicit return
-    if (is_async && return_type.empty()) {
-        out += "\tco_return;\n";
-    }
-
     out += "}\n";
     return out;
 }
@@ -57,16 +43,8 @@ string function_def(const string& name, const vector<FunctionParam>& params,
 string method_def(const string& name,
                   const vector<pair<string, string>>& params,
                   const string& return_type,
-                  const vector<string>& body_stmts,
-                  bool is_async) {
-    string rt;
-
-    if (is_async) {
-        string inner_type = return_type.empty() ? "void" : map_type(return_type);
-        rt = "asio::awaitable<" + inner_type + ">";
-    } else {
-        rt = return_type.empty() ? "void" : map_type(return_type);
-    }
+                  const vector<string>& body_stmts) {
+    string rt = return_type.empty() ? "void" : map_type(return_type);
 
     vector<string> param_strs;
 
@@ -80,11 +58,6 @@ string method_def(const string& name,
         out += fmt::format("\t\t{}\n", stmt);
     }
 
-    // Async methods need at least one co_await/co_return to be recognized as coroutines
-    if (is_async && return_type.empty()) {
-        out += "\t\tco_return;\n";
-    }
-
     out += "\t}\n";
     return out;
 }
@@ -92,13 +65,10 @@ string method_def(const string& name,
 /**
  * Generates a C++ function from a Nog FunctionDef.
  * Maps Nog types to C++ types and handles main() specially.
- * Async main is wrapped with io_context runner.
+ * Main is wrapped with boost::asio::spawn for goroutine support.
  */
 string generate_function(CodeGenState& state, const FunctionDef& fn) {
     bool is_main = (fn.name == "main" && !state.test_mode);
-    bool is_async_main = is_main && fn.is_async;
-
-    state.in_async_function = fn.is_async;
 
     vector<FunctionParam> params;
 
@@ -114,33 +84,32 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
 
     string out;
 
-    if (is_async_main) {
-        // Generate the async function as _async_main()
+    if (is_main) {
+        // Generate the function as _nog_main()
         string rt_type = fn.return_type.empty() ? "" : fn.return_type;
-        out = function_def("_async_main", params, rt_type, body, true);
+        out = function_def("_nog_main", params, rt_type, body);
 
-        // Generate int main() that runs the coroutine
+        // Generate int main() with thread pool for parallel goroutines
         out += "\nint main() {\n";
-        out += "\tasio::io_context io_context;\n";
-        out += "\tasio::co_spawn(io_context, _async_main(), asio::detached);\n";
-        out += "\tio_context.run();\n";
+        out += "\tboost::asio::io_context io_context;\n";
+        out += "\tnog::rt::global_io_context = &io_context;\n\n";
+        out += "\tauto work = boost::asio::make_work_guard(io_context);\n";
+        out += "\tstd::vector<std::thread> threads;\n";
+        out += "\tfor (unsigned i = 0; i < std::thread::hardware_concurrency(); i++) {\n";
+        out += "\t\tthreads.emplace_back([&io_context] { io_context.run(); });\n";
+        out += "\t}\n\n";
+        out += "\tboost::asio::spawn(io_context, [](boost::asio::yield_context yield) {\n";
+        out += "\t\tnog::rt::YieldScope scope(yield);\n";
+        out += "\t\t_nog_main();\n";
+        out += "\t}, boost::asio::detached);\n\n";
+        out += "\twork.reset();\n";
+        out += "\tfor (auto& t : threads) t.join();\n";
         out += "\treturn 0;\n";
         out += "}\n";
     } else {
-        string rt_type = is_main ? "int" : fn.return_type;
-        out = function_def(fn.name, params, rt_type, body, fn.is_async);
-
-        // For main without explicit return, add return 0
-        if (is_main && fn.return_type.empty()) {
-            auto pos = out.rfind("}\n");
-
-            if (pos != string::npos) {
-                out.insert(pos, "\treturn 0;\n");
-            }
-        }
+        out = function_def(fn.name, params, fn.return_type, body);
     }
 
-    state.in_async_function = false;
     return out;
 }
 
@@ -149,9 +118,6 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
  * Transforms self.field into this->field.
  */
 string generate_method(CodeGenState& state, const MethodDef& method) {
-    // Track whether we're in an async method
-    state.in_async_function = method.is_async;
-
     // Skip 'self' parameter for C++ method (it becomes 'this')
     vector<pair<string, string>> params;
 
@@ -165,29 +131,7 @@ string generate_method(CodeGenState& state, const MethodDef& method) {
         body.push_back(generate_statement(state, *stmt));
     }
 
-    state.in_async_function = false;
-
-    return method_def(method.name, params, method.return_type, body, method.is_async);
-}
-
-/**
- * Checks if any function in the program is async.
- */
-static bool has_async_functions(const Program& program) {
-    for (const auto& fn : program.functions) {
-        if (fn->is_async) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
- * Checks if the program uses channels.
- */
-static bool has_channels(const Program& program) {
-    return has_async_functions(program);
+    return method_def(method.name, params, method.return_type, body);
 }
 
 /**
@@ -203,18 +147,8 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
     }
 
     string out = "#include <nog/std.hpp>\n";
-
-    if (has_async_functions(*program)) {
-        out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
-    }
-
-    if (has_channels(*program)) {
-        out += "#include <asio/experimental/channel.hpp>\n";
-        out += "#include <asio/experimental/awaitable_operators.hpp>\n";
-        out += "using namespace asio::experimental::awaitable_operators;\n";
-    }
-
-    out += "\n";
+    out += "#include <boost/asio.hpp>\n";
+    out += "#include <boost/asio/spawn.hpp>\n\n";
 
     // Generate extern "C" declarations for FFI
     out += generate_extern_declarations(program);
@@ -232,42 +166,34 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
         out += generate_struct(state, *s) + "\n\n";
     }
 
-    vector<pair<string, bool>> test_funcs;
+    vector<string> test_funcs;
 
     for (const auto& fn : program->functions) {
         if (fn->name.rfind("test_", 0) == 0) {
-            test_funcs.push_back({fn->name, fn->is_async});
+            test_funcs.push_back(fn->name);
         }
 
         out += generate_function(state, *fn);
     }
 
     out += "\nint main() {\n";
+    out += "\tboost::asio::io_context io_context;\n";
+    out += "\tnog::rt::global_io_context = &io_context;\n\n";
+    out += "\tauto work = boost::asio::make_work_guard(io_context);\n";
+    out += "\tstd::vector<std::thread> threads;\n";
+    out += "\tfor (unsigned i = 0; i < std::thread::hardware_concurrency(); i++) {\n";
+    out += "\t\tthreads.emplace_back([&io_context] { io_context.run(); });\n";
+    out += "\t}\n\n";
 
-    bool has_async_tests = false;
-    for (const auto& [_, is_async] : test_funcs) {
-        if (is_async) {
-            has_async_tests = true;
-            break;
-        }
+    for (const auto& name : test_funcs) {
+        out += "\tboost::asio::spawn(io_context, [](boost::asio::yield_context yield) {\n";
+        out += "\t\tnog::rt::YieldScope scope(yield);\n";
+        out += "\t\t" + name + "();\n";
+        out += "\t}, boost::asio::detached);\n";
     }
 
-    if (has_async_tests) {
-        out += "\tasio::io_context io_context;\n";
-    }
-
-    for (const auto& [name, is_async] : test_funcs) {
-        if (is_async) {
-            out += "\tasio::co_spawn(io_context, " + name + "(), asio::detached);\n";
-        } else {
-            out += "\t" + name + "();\n";
-        }
-    }
-
-    if (has_async_tests) {
-        out += "\tio_context.run();\n";
-    }
-
+    out += "\n\twork.reset();\n";
+    out += "\tfor (auto& t : threads) t.join();\n";
     out += "\treturn _failures;\n";
     out += "}\n";
 

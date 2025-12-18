@@ -15,7 +15,7 @@ namespace typechecker {
 void check_while_stmt(TypeCheckerState& state, const WhileStmt& while_stmt) {
     TypeInfo cond_type = infer_type(state, *while_stmt.condition);
 
-    if (cond_type.is_awaitable || cond_type.base_type != "bool") {
+    if (cond_type.base_type != "bool") {
         error(state, "while condition must be bool, got '" + format_type(cond_type) + "'", while_stmt.line);
     }
 

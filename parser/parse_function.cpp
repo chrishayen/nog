@@ -40,7 +40,7 @@ Visibility parse_visibility(ParserState& state) {
  *     return a + b;
  * }
  */
-unique_ptr<FunctionDef> parse_function(ParserState& state, Visibility vis, bool is_async) {
+unique_ptr<FunctionDef> parse_function(ParserState& state, Visibility vis) {
     consume(state, TokenType::FN);
     Token name = consume(state, TokenType::IDENT);
     consume(state, TokenType::LPAREN);
@@ -49,7 +49,6 @@ unique_ptr<FunctionDef> parse_function(ParserState& state, Visibility vis, bool 
     func->name = name.value;
     func->line = name.line;
     func->visibility = vis;
-    func->is_async = is_async;
 
     // Parse parameters: fn foo(int a, int b) or fn foo(Person p) or fn foo(fn(int) -> int callback)
     while (!check(state, TokenType::RPAREN) && !check(state, TokenType::EOF_TOKEN)) {
@@ -96,7 +95,7 @@ unique_ptr<FunctionDef> parse_function(ParserState& state, Visibility vis, bool 
  *     return self.name;
  * }
  */
-unique_ptr<MethodDef> parse_method_def(ParserState& state, const string& struct_name, Visibility vis, bool is_async) {
+unique_ptr<MethodDef> parse_method_def(ParserState& state, const string& struct_name, Visibility vis) {
     // We're past "Name ::", now at method_name
     Token method_name = consume(state, TokenType::IDENT);
     consume(state, TokenType::LPAREN);
@@ -106,7 +105,6 @@ unique_ptr<MethodDef> parse_method_def(ParserState& state, const string& struct_
     method->name = method_name.value;
     method->line = method_name.line;
     method->visibility = vis;
-    method->is_async = is_async;
 
     // Parse parameters (first should be 'self')
     while (!check(state, TokenType::RPAREN) && !check(state, TokenType::EOF_TOKEN)) {

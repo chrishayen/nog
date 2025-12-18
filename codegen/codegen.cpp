@@ -31,29 +31,27 @@
 /**
  * @nog_struct Channel
  * @module builtins
- * @description A typed channel for communication between async functions.
+ * @description A typed channel for communication between goroutines.
  * @example
  * ch := Channel<int>();
- * await ch.send(42);
- * val := await ch.recv();
+ * ch.send(42);
+ * val := ch.recv();
  */
 
 /**
  * @nog_method send
  * @type Channel
- * @async
- * @description Sends a value through the channel.
+ * @description Sends a value through the channel (blocks until received).
  * @param value T - The value to send
- * @example await ch.send(42);
+ * @example ch.send(42);
  */
 
 /**
  * @nog_method recv
  * @type Channel
- * @async
- * @description Receives a value from the channel.
+ * @description Receives a value from the channel (blocks until available).
  * @returns T - The received value
- * @example val := await ch.recv();
+ * @example val := ch.recv();
  */
 
 #include "codegen.hpp"
@@ -65,26 +63,6 @@
 using namespace std;
 
 namespace codegen {
-
-/**
- * Checks if any function in the program is async.
- */
-static bool has_async_functions(const Program& program) {
-    for (const auto& fn : program.functions) {
-        if (fn->is_async) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/**
- * Checks if the program uses channels (simple heuristic: async functions assumed to use channels).
- */
-static bool has_channels(const Program& program) {
-    return has_async_functions(program);
-}
 
 /**
  * Checks if any function has function type parameters (requires <functional>).
@@ -171,17 +149,8 @@ string generate(CodeGenState& state, const unique_ptr<Program>& program, bool te
     }
 
     string out = "#include <nog/std.hpp>\n";
-
-    if (has_async_functions(*program)) {
-        out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
-    }
-
-    if (has_channels(*program)) {
-        out += "#include <asio/experimental/channel.hpp>\n";
-        out += "#include <asio/experimental/awaitable_operators.hpp>\n";
-        out += "using namespace asio::experimental::awaitable_operators;\n";
-    }
-
+    out += "#include <boost/asio.hpp>\n";
+    out += "#include <boost/asio/spawn.hpp>\n";
     out += "\n";
 
     out += generate_extern_declarations(program);
@@ -217,23 +186,11 @@ string generate_with_imports(
     string out;
 
     if (has_http_import(imports)) {
-        out += "#include <nog/http.hpp>\n";
-        out += "using namespace asio::experimental::awaitable_operators;\n";
-        out += "\n";
+        out += "#include <nog/http.hpp>\n\n";
     } else {
         out += "#include <nog/std.hpp>\n";
-
-        if (has_async_functions(*program)) {
-            out += "#include <asio.hpp>\n#include <asio/awaitable.hpp>\n";
-        }
-
-        if (has_channels(*program)) {
-            out += "#include <asio/experimental/channel.hpp>\n";
-            out += "#include <asio/experimental/awaitable_operators.hpp>\n";
-            out += "using namespace asio::experimental::awaitable_operators;\n";
-        }
-
-        out += "\n";
+        out += "#include <boost/asio.hpp>\n";
+        out += "#include <boost/asio/spawn.hpp>\n\n";
     }
 
     if (has_fs_import(imports)) {
@@ -266,40 +223,26 @@ string generate_with_imports(
     }
 
     if (test_mode) {
-        vector<pair<string, bool>> test_funcs;
+        vector<string> test_funcs;
 
         for (const auto& fn : program->functions) {
             if (fn->name.rfind("test_", 0) == 0) {
-                test_funcs.push_back({fn->name, fn->is_async});
+                test_funcs.push_back(fn->name);
             }
         }
 
         out += "\nint main() {\n";
+        out += "\tboost::asio::io_context io_context;\n";
+        out += "\tnog::rt::global_io_context = &io_context;\n\n";
 
-        bool has_async_tests = false;
-        for (const auto& [_, is_async] : test_funcs) {
-            if (is_async) {
-                has_async_tests = true;
-                break;
-            }
+        for (const auto& name : test_funcs) {
+            out += "\tboost::asio::spawn(io_context, [](boost::asio::yield_context yield) {\n";
+            out += "\t\tnog::rt::YieldScope scope(yield);\n";
+            out += "\t\t" + name + "();\n";
+            out += "\t}, boost::asio::detached);\n";
         }
 
-        if (has_async_tests) {
-            out += "\tasio::io_context io_context;\n";
-        }
-
-        for (const auto& [name, is_async] : test_funcs) {
-            if (is_async) {
-                out += "\tasio::co_spawn(io_context, " + name + "(), asio::detached);\n";
-            } else {
-                out += "\t" + name + "();\n";
-            }
-        }
-
-        if (has_async_tests) {
-            out += "\tio_context.run();\n";
-        }
-
+        out += "\n\tio_context.run();\n";
         out += "\treturn _failures;\n";
         out += "}\n";
     }

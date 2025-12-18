@@ -31,6 +31,14 @@ string map_type(const string& t) {
     if (t == "void") return "void";
     if (t.empty()) return "void";
 
+    // Handle Channel<T> types: Channel<int> -> nog::rt::Channel<int>&
+    if (t.rfind("Channel<", 0) == 0 && t.back() == '>') {
+        size_t start = 8;
+        size_t end = t.find('>', start);
+        string element_type = t.substr(start, end - start);
+        return "nog::rt::Channel<" + map_type(element_type) + ">&";
+    }
+
     // Handle List<T> types: List<int> -> std::vector<int>
     if (t.rfind("List<", 0) == 0 && t.back() == '>') {
         size_t start = 5;
