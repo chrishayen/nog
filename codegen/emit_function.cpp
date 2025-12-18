@@ -244,12 +244,28 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
 
     out += "\nint main() {\n";
 
+    bool has_async_tests = false;
+    for (const auto& [_, is_async] : test_funcs) {
+        if (is_async) {
+            has_async_tests = true;
+            break;
+        }
+    }
+
+    if (has_async_tests) {
+        out += "\tasio::io_context io_context;\n";
+    }
+
     for (const auto& [name, is_async] : test_funcs) {
         if (is_async) {
-            out += "\t(void)" + name + "();\n";
+            out += "\tasio::co_spawn(io_context, " + name + "(), asio::detached);\n";
         } else {
             out += "\t" + name + "();\n";
         }
+    }
+
+    if (has_async_tests) {
+        out += "\tio_context.run();\n";
     }
 
     out += "\treturn _failures;\n";

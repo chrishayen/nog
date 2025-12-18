@@ -44,15 +44,23 @@ TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call) 
             TypeInfo param_type = {func->params[i].type, false, false};
 
             if (!types_compatible(param_type, arg_type)) {
-                error(state, "argument " + to_string(i + 1) + " of function '" + call.name + "' expects '" + param_type.base_type + "', got '" + arg_type.base_type + "'", call.line);
+                error(state, "argument " + to_string(i + 1) + " of function '" + call.name +
+                      "' expects '" + format_type(param_type) + "', got '" + format_type(arg_type) + "'", call.line);
             }
         }
 
-        if (func->return_type.empty()) {
-            return {"void", false, true};
+        TypeInfo ret_type = func->return_type.empty() ? TypeInfo{"void", false, true}
+                                                      : TypeInfo{func->return_type, false, false};
+
+        if (func->is_async) {
+            if (!state.in_async_context) {
+                error(state, "async function '" + call.name + "' can only be called inside async functions", call.line);
+            }
+
+            return make_awaitable(ret_type);
         }
 
-        return {func->return_type, false, false};
+        return ret_type;
     }
 
     if (const TypeInfo* local = lookup_local(state, call.name)) {
@@ -82,15 +90,23 @@ TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call) 
             TypeInfo param_type = {func->params[i].type, false, false};
 
             if (!types_compatible(param_type, arg_type)) {
-                error(state, "argument " + to_string(i + 1) + " of function '" + call.name + "' expects '" + param_type.base_type + "', got '" + arg_type.base_type + "'", call.line);
+                error(state, "argument " + to_string(i + 1) + " of function '" + call.name +
+                      "' expects '" + format_type(param_type) + "', got '" + format_type(arg_type) + "'", call.line);
             }
         }
 
-        if (func->return_type.empty()) {
-            return {"void", false, true};
+        TypeInfo ret_type = func->return_type.empty() ? TypeInfo{"void", false, true}
+                                                      : TypeInfo{func->return_type, false, false};
+
+        if (func->is_async) {
+            if (!state.in_async_context) {
+                error(state, "async function '" + call.name + "' can only be called inside async functions", call.line);
+            }
+
+            return make_awaitable(ret_type);
         }
 
-        return {func->return_type, false, false};
+        return ret_type;
     }
 
     if (state.extern_functions.find(call.name) != state.extern_functions.end()) {
@@ -105,7 +121,8 @@ TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call) 
             TypeInfo param_type = {ext->params[i].type, false, false};
 
             if (!types_compatible(param_type, arg_type)) {
-                error(state, "argument " + to_string(i + 1) + " of function '" + call.name + "' expects '" + param_type.base_type + "', got '" + arg_type.base_type + "'", call.line);
+                error(state, "argument " + to_string(i + 1) + " of function '" + call.name +
+                      "' expects '" + format_type(param_type) + "', got '" + format_type(arg_type) + "'", call.line);
             }
         }
 

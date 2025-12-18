@@ -20,7 +20,7 @@ void check_return_stmt(TypeCheckerState& state, const ReturnStmt& ret) {
     }
 
     if (!types_compatible(state.current_return, ret_type)) {
-        error(state, "return type '" + ret_type.base_type + "' does not match declared type '" + state.current_return.base_type + "'", ret.line);
+        error(state, "return type '" + format_type(ret_type) + "' does not match declared type '" + format_type(state.current_return) + "'", ret.line);
     }
 }
 

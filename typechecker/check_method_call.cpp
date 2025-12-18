@@ -36,7 +36,7 @@ TypeInfo check_str_method(TypeCheckerState& state, const MethodCall& mcall) {
         if (!types_compatible(expected, arg_type)) {
             error(state, "argument " + to_string(i + 1) + " of method '" +
                   mcall.method_name + "' expects '" + param_types[i] +
-                  "', got '" + arg_type.base_type + "'", mcall.line);
+                  "', got '" + format_type(arg_type) + "'", mcall.line);
         }
     }
 
@@ -50,7 +50,7 @@ TypeInfo check_struct_method(TypeCheckerState& state, const MethodCall& mcall, c
     const StructDef* sdef = get_struct(state, obj_type.base_type);
 
     if (!sdef) {
-        error(state, "cannot call method on non-struct type '" + obj_type.base_type + "'", mcall.line);
+        error(state, "cannot call method on non-struct type '" + format_type(obj_type) + "'", mcall.line);
         return {"unknown", false, false};
     }
 
@@ -81,15 +81,23 @@ TypeInfo check_struct_method(TypeCheckerState& state, const MethodCall& mcall, c
         TypeInfo param_type = {method->params[i + 1].type, false, false};
 
         if (!types_compatible(param_type, arg_type)) {
-            error(state, "argument " + to_string(i + 1) + " of method '" + mcall.method_name + "' expects '" + param_type.base_type + "', got '" + arg_type.base_type + "'", mcall.line);
+            error(state, "argument " + to_string(i + 1) + " of method '" + mcall.method_name +
+                  "' expects '" + format_type(param_type) + "', got '" + format_type(arg_type) + "'", mcall.line);
         }
     }
 
-    if (method->return_type.empty()) {
-        return {"void", false, true};
+    TypeInfo ret_type = method->return_type.empty() ? TypeInfo{"void", false, true}
+                                                    : TypeInfo{method->return_type, false, false};
+
+    if (method->is_async) {
+        if (!state.in_async_context) {
+            error(state, "async method '" + mcall.method_name + "' can only be called inside async functions", mcall.line);
+        }
+
+        return make_awaitable(ret_type);
     }
 
-    return {method->return_type, false, false};
+    return ret_type;
 }
 
 /**
@@ -97,6 +105,12 @@ TypeInfo check_struct_method(TypeCheckerState& state, const MethodCall& mcall, c
  */
 TypeInfo check_method_call(TypeCheckerState& state, const MethodCall& mcall) {
     TypeInfo obj_type = infer_type(state, *mcall.object);
+
+    if (obj_type.is_awaitable) {
+        error(state, "cannot call method on '" + format_type(obj_type) + "' (did you forget 'await'?)", mcall.line);
+        return {"unknown", false, false};
+    }
+
     mcall.object_type = obj_type.base_type;  // Store for codegen
 
     if (obj_type.base_type.rfind("Channel<", 0) == 0) {

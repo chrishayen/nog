@@ -32,9 +32,17 @@ void check_statement(TypeCheckerState& state, const ASTNode& stmt) {
     } else if (auto* select_stmt = dynamic_cast<const SelectStmt*>(&stmt)) {
         check_select_stmt(state, *select_stmt);
     } else if (auto* call = dynamic_cast<const FunctionCall*>(&stmt)) {
-        infer_type(state, *call);
+        TypeInfo call_type = infer_type(state, *call);
+
+        if (call_type.is_awaitable) {
+            error(state, "unused async call result (did you forget 'await'?)", call->line);
+        }
     } else if (auto* mcall = dynamic_cast<const MethodCall*>(&stmt)) {
-        infer_type(state, *mcall);
+        TypeInfo call_type = infer_type(state, *mcall);
+
+        if (call_type.is_awaitable) {
+            error(state, "unused async call result (did you forget 'await'?)", mcall->line);
+        }
     } else if (auto* await_expr = dynamic_cast<const AwaitExpr*>(&stmt)) {
         infer_type(state, *await_expr);
     }

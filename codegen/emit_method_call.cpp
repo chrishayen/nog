@@ -50,7 +50,7 @@ string emit_method_call(CodeGenState& state, const MethodCall& call) {
 
     if (call.method_name == "recv") {
         // Return raw async call - will be wrapped by AwaitExpr or used in select
-        return emit(state, *call.object) + ".async_receive(asio::as_tuple(asio::use_awaitable))";
+        return emit(state, *call.object) + ".async_receive(asio::use_awaitable)";
     }
 
     string obj_str = emit(state, *call.object);

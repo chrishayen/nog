@@ -428,6 +428,9 @@ async fn fetch_data() -> int {
 }
 ```
 
+> Calling an `async fn` produces an awaitable value. Use `await` to get the result (or assign it and `await` later).
+> Nog currently has no `spawn`, so async calls are only allowed inside async functions/methods.
+
 ### async method
 
 Declare an asynchronous method on a struct.
@@ -460,6 +463,8 @@ await ch.send(42);
 val := await ch.recv();
 ```
 
+> `await` requires an awaitable value (an async call, `Channel.send/recv`, etc).
+
 ## Channels
 
 ### Channel Creation
@@ -476,6 +481,8 @@ Channel<type>()
 ch := Channel<int>();
 ch_str := Channel<str>();
 ```
+
+> Channel creation is only valid inside async functions/methods.
 
 ### select
 
@@ -497,6 +504,8 @@ select {
     }
 }
 ```
+
+> `select` is only valid inside async functions/methods.
 
 ## Imports
 

@@ -39,7 +39,7 @@ TypeInfo check_struct_literal(TypeCheckerState& state, const StructLiteral& lit)
         TypeInfo exp_type = {expected_type, false, false};
 
         if (!types_compatible(exp_type, val_type)) {
-            error(state, "field '" + field_name + "' expects '" + expected_type + "', got '" + val_type.base_type + "'", lit.line);
+            error(state, "field '" + field_name + "' expects '" + expected_type + "', got '" + format_type(val_type) + "'", lit.line);
         }
     }
 

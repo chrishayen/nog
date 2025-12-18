@@ -24,7 +24,7 @@ void check_variable_decl_stmt(TypeCheckerState& state, const VariableDecl& decl)
             TypeInfo expected = {decl.type, decl.is_optional, false};
 
             if (!types_compatible(expected, init_type)) {
-                error(state, "cannot assign '" + init_type.base_type + "' to variable of type '" + decl.type + "'", decl.line);
+                error(state, "cannot assign '" + format_type(init_type) + "' to variable of type '" + format_type(expected) + "'", decl.line);
             }
         }
 
@@ -51,7 +51,7 @@ void check_assignment_stmt(TypeCheckerState& state, const Assignment& assign) {
     TypeInfo val_type = infer_type(state, *assign.value);
 
     if (!types_compatible(var_type, val_type)) {
-        error(state, "cannot assign '" + val_type.base_type + "' to variable of type '" + var_type.base_type + "'", assign.line);
+        error(state, "cannot assign '" + format_type(val_type) + "' to variable of type '" + format_type(var_type) + "'", assign.line);
     }
 }
 
@@ -61,8 +61,13 @@ void check_assignment_stmt(TypeCheckerState& state, const Assignment& assign) {
 void check_field_assignment_stmt(TypeCheckerState& state, const FieldAssignment& fa) {
     TypeInfo obj_type = infer_type(state, *fa.object);
 
+    if (obj_type.is_awaitable) {
+        error(state, "cannot assign to field on '" + format_type(obj_type) + "' (did you forget 'await'?)", fa.line);
+        return;
+    }
+
     if (state.structs.find(obj_type.base_type) == state.structs.end()) {
-        error(state, "cannot access field on non-struct type '" + obj_type.base_type + "'", fa.line);
+        error(state, "cannot access field on non-struct type '" + format_type(obj_type) + "'", fa.line);
         return;
     }
 
@@ -77,7 +82,7 @@ void check_field_assignment_stmt(TypeCheckerState& state, const FieldAssignment&
     TypeInfo val_type = infer_type(state, *fa.value);
 
     if (!types_compatible(expected, val_type)) {
-        error(state, "cannot assign '" + val_type.base_type + "' to field of type '" + field_type + "'", fa.line);
+        error(state, "cannot assign '" + format_type(val_type) + "' to field of type '" + format_type(expected) + "'", fa.line);
     }
 }
 

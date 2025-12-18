@@ -266,18 +266,38 @@ string generate_with_imports(
     }
 
     if (test_mode) {
-        vector<string> test_names;
+        vector<pair<string, bool>> test_funcs;
 
         for (const auto& fn : program->functions) {
             if (fn->name.rfind("test_", 0) == 0) {
-                test_names.push_back(fn->name);
+                test_funcs.push_back({fn->name, fn->is_async});
             }
         }
 
         out += "\nint main() {\n";
 
-        for (const auto& name : test_names) {
-            out += "\t" + name + "();\n";
+        bool has_async_tests = false;
+        for (const auto& [_, is_async] : test_funcs) {
+            if (is_async) {
+                has_async_tests = true;
+                break;
+            }
+        }
+
+        if (has_async_tests) {
+            out += "\tasio::io_context io_context;\n";
+        }
+
+        for (const auto& [name, is_async] : test_funcs) {
+            if (is_async) {
+                out += "\tasio::co_spawn(io_context, " + name + "(), asio::detached);\n";
+            } else {
+                out += "\t" + name + "();\n";
+            }
+        }
+
+        if (has_async_tests) {
+            out += "\tio_context.run();\n";
         }
 
         out += "\treturn _failures;\n";
