@@ -12,6 +12,9 @@ namespace codegen {
 
 /**
  * Emits a goroutine spawn using boost::asio::spawn.
+ *
+ * Note: Uses [&] capture. The caller must ensure captured variables
+ * outlive the goroutine. Proper fix requires shared_ptr for channels.
  */
 string emit_go_spawn(CodeGenState& state, const GoSpawn& spawn) {
     string call_code = emit(state, *spawn.call);

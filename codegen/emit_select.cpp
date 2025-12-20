@@ -19,8 +19,6 @@ string generate_select(CodeGenState& state, const SelectStmt& stmt) {
     // Generate a polling loop that checks each channel
     out += "while (true) {\n";
 
-    size_t case_idx = 0;
-
     for (const auto& c : stmt.cases) {
         string channel_code = emit(state, *c->channel);
 
@@ -41,8 +39,6 @@ string generate_select(CodeGenState& state, const SelectStmt& stmt) {
             out += "\t\t}\n";
             out += "\t}\n";
         }
-
-        case_idx++;
     }
 
     // Yield to let other goroutines run

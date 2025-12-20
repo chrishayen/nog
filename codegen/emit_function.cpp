@@ -95,7 +95,7 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
         out += "\tnog::rt::global_io_context = &io_context;\n\n";
         out += "\tauto work = boost::asio::make_work_guard(io_context);\n";
         out += "\tstd::vector<std::thread> threads;\n";
-        out += "\tfor (unsigned i = 0; i < std::thread::hardware_concurrency(); i++) {\n";
+        out += "\tfor (unsigned i = 0; i < std::max(1u, std::thread::hardware_concurrency()); i++) {\n";
         out += "\t\tthreads.emplace_back([&io_context] { io_context.run(); });\n";
         out += "\t}\n\n";
         out += "\tboost::asio::spawn(io_context, [](boost::asio::yield_context yield) {\n";
@@ -181,7 +181,7 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
     out += "\tnog::rt::global_io_context = &io_context;\n\n";
     out += "\tauto work = boost::asio::make_work_guard(io_context);\n";
     out += "\tstd::vector<std::thread> threads;\n";
-    out += "\tfor (unsigned i = 0; i < std::thread::hardware_concurrency(); i++) {\n";
+    out += "\tfor (unsigned i = 0; i < std::max(1u, std::thread::hardware_concurrency()); i++) {\n";
     out += "\t\tthreads.emplace_back([&io_context] { io_context.run(); });\n";
     out += "\t}\n\n";
 
