@@ -89,9 +89,18 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
         string rt_type = fn.return_type.empty() ? "" : fn.return_type;
         out = function_def("_nog_main", params, rt_type, body);
 
-        // Generate int main() that runs _nog_main in a fiber
+        // Generate int main() with fiber-asio scheduler
         out += "\nint main() {\n";
-        out += "\tboost::fibers::fiber(_nog_main).join();\n";
+        out += "\t// Initialize fiber-asio scheduler\n";
+        out += "\tnog::rt::io_ctx = std::make_shared<boost::asio::io_context>();\n";
+        out += "\tboost::fibers::use_scheduling_algorithm<\n";
+        out += "\t\tboost::fibers::asio::round_robin>(nog::rt::io_ctx);\n";
+        out += "\n";
+        out += "\t// Run main as a fiber\n";
+        out += "\tboost::fibers::fiber(_nog_main).detach();\n";
+        out += "\n";
+        out += "\t// Drive fiber scheduler and async I/O\n";
+        out += "\tnog::rt::io_ctx->run();\n";
         out += "\treturn 0;\n";
         out += "}\n";
     } else {
@@ -163,6 +172,11 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
     }
 
     out += "\nint main() {\n";
+    out += "\t// Initialize fiber-asio scheduler for tests\n";
+    out += "\tnog::rt::io_ctx = std::make_shared<boost::asio::io_context>();\n";
+    out += "\tboost::fibers::use_scheduling_algorithm<\n";
+    out += "\t\tboost::fibers::asio::round_robin>(nog::rt::io_ctx);\n";
+    out += "\n";
 
     // Run each test in a fiber, join to wait for completion
     for (const auto& name : test_funcs) {

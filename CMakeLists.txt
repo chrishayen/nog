@@ -102,6 +102,8 @@ target_link_libraries(nog nog_lib)
 # Copy runtime headers and libraries to build directory for development
 add_custom_target(nog_runtime_headers ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog/fiber_asio
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/detail
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/lib
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/std/std.hpp
@@ -112,6 +114,15 @@ add_custom_target(nog_runtime_headers ALL
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/fs/fs.hpp
         ${CMAKE_BINARY_DIR}/include/nog/fs.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/round_robin.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/round_robin.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/yield.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/yield.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/detail/yield.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/detail/yield.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${llhttp_SOURCE_DIR}/include/llhttp.h
         ${CMAKE_BINARY_DIR}/include/llhttp.h
@@ -153,6 +164,8 @@ add_custom_command(TARGET nog_http_runtime POST_BUILD
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch
     COMMAND ${CMAKE_CXX_COMPILER} -std=c++23
+            -I${Boost_INCLUDE_DIRS}
+            -I${CMAKE_BINARY_DIR}/include
             -x c++-header
             ${CMAKE_BINARY_DIR}/include/nog/std.hpp
             -o ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch

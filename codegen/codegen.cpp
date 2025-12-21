@@ -232,17 +232,16 @@ string generate_with_imports(
         }
 
         out += "\nint main() {\n";
-        out += "\tboost::asio::io_context io_context;\n";
-        out += "\tnog::rt::global_io_context = &io_context;\n\n";
+        out += "\t// Initialize fiber-asio scheduler for tests\n";
+        out += "\tnog::rt::io_ctx = std::make_shared<boost::asio::io_context>();\n";
+        out += "\tboost::fibers::use_scheduling_algorithm<\n";
+        out += "\t\tboost::fibers::asio::round_robin>(nog::rt::io_ctx);\n";
+        out += "\n";
 
         for (const auto& name : test_funcs) {
-            out += "\tboost::asio::spawn(io_context, [](boost::asio::yield_context yield) {\n";
-            out += "\t\tnog::rt::YieldScope scope(yield);\n";
-            out += "\t\t" + name + "();\n";
-            out += "\t}, boost::asio::detached);\n";
+            out += "\tboost::fibers::fiber(" + name + ").join();\n";
         }
 
-        out += "\n\tio_context.run();\n";
         out += "\treturn _failures;\n";
         out += "}\n";
     }

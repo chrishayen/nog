@@ -70,8 +70,6 @@ std::string format_response(const Response& resp) {
 }
 
 Request read_request(boost::asio::ip::tcp::socket& socket) {
-    auto& yield = nog::rt::yield();
-
     llhttp_t parser;
     llhttp_settings_t settings;
     llhttp_settings_init(&settings);
@@ -87,8 +85,10 @@ Request read_request(boost::asio::ip::tcp::socket& socket) {
     char buffer[8192];
     boost::system::error_code ec;
 
-    // First read - usually gets entire request for small GETs
-    size_t n = socket.async_read_some(boost::asio::buffer(buffer), yield[ec]);
+    // First read - yields fiber until data available
+    size_t n = socket.async_read_some(
+        boost::asio::buffer(buffer),
+        boost::fibers::asio::yield[ec]);
 
     if (ec) {
         return Request{"GET", "/", ""};
@@ -102,7 +102,9 @@ Request read_request(boost::asio::ip::tcp::socket& socket) {
 
     // Continue reading only if message incomplete (large POST, slow client)
     while (!ctx.message_complete) {
-        n = socket.async_read_some(boost::asio::buffer(buffer), yield[ec]);
+        n = socket.async_read_some(
+            boost::asio::buffer(buffer),
+            boost::fibers::asio::yield[ec]);
 
         if (ec) {
             return Request{"GET", "/", ""};
@@ -137,7 +139,6 @@ Response App::route(const Request& req) {
 }
 
 void App::listen(int port) {
-    auto& yield = nog::rt::yield();
     boost::asio::ip::tcp::acceptor acceptor(nog::rt::io_context());
 
     try {
@@ -155,18 +156,19 @@ void App::listen(int port) {
     while (true) {
         boost::system::error_code ec;
         boost::asio::ip::tcp::socket socket(nog::rt::io_context());
-        acceptor.async_accept(socket, yield[ec]);
+
+        // Yield fiber during accept
+        acceptor.async_accept(socket, boost::fibers::asio::yield[ec]);
 
         if (!ec) {
             auto self = this;
 
-            // Spawn handler in new goroutine
-            boost::asio::spawn(nog::rt::io_context(), [self, socket = std::move(socket)](boost::asio::yield_context yield) mutable {
-                nog::rt::YieldScope scope(yield);
+            // Spawn handler as go routine (fiber)
+            boost::fibers::fiber([self, socket = std::move(socket)]() mutable {
                 handle_connection(std::move(socket), [self](const Request& req) {
                     return self->route(req);
                 });
-            }, boost::asio::detached);
+            }).detach();
         }
     }
 }

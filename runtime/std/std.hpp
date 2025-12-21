@@ -24,54 +24,27 @@
 
 #include <boost/fiber/all.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/spawn.hpp>
+
+// Fiber-Asio integration for unified go routine model
+#include <nog/fiber_asio/round_robin.hpp>
 
 namespace nog::rt {
 
 /**
- * Thread-local yield context for Asio integration (used by HTTP).
+ * Global io_context for fiber-asio integration.
+ * Set by main() before spawning any fibers.
  */
-inline thread_local boost::asio::yield_context* current_yield = nullptr;
+inline std::shared_ptr<boost::asio::io_context> io_ctx;
 
 /**
- * Global io_context for async I/O (used by HTTP).
- */
-inline boost::asio::io_context* global_io_context = nullptr;
-
-/**
- * Returns the current yield context (for HTTP async I/O).
- */
-inline boost::asio::yield_context& yield() {
-    if (!current_yield) {
-        throw std::runtime_error("blocking operation used outside async context");
-    }
-    return *current_yield;
-}
-
-/**
- * Returns the global io_context (for HTTP).
+ * Returns the global io_context for async I/O.
  */
 inline boost::asio::io_context& io_context() {
-    if (!global_io_context) {
+    if (!io_ctx) {
         throw std::runtime_error("io_context not initialized");
     }
-    return *global_io_context;
+    return *io_ctx;
 }
-
-/**
- * RAII scope that sets the current yield context (for HTTP).
- */
-class YieldScope {
-public:
-    explicit YieldScope(boost::asio::yield_context& y) : prev_(current_yield) {
-        current_yield = &y;
-    }
-    ~YieldScope() { current_yield = prev_; }
-    YieldScope(const YieldScope&) = delete;
-    YieldScope& operator=(const YieldScope&) = delete;
-private:
-    boost::asio::yield_context* prev_;
-};
 
 /**
  * Typed channel for communication between fibers.
@@ -82,7 +55,7 @@ private:
 template<typename T>
 class Channel {
 public:
-    Channel() : ch_(2) {}  // capacity of 2 (minimum for Boost.Fiber)
+    Channel() : ch_(2) {}  // capacity must be power of 2, min 2 for boost::fibers
 
     /**
      * Send a value through the channel. Blocks until space available.

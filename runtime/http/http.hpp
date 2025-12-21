@@ -3,7 +3,8 @@
  * @brief Nog HTTP runtime library.
  *
  * Provides HTTP server functionality for Nog programs.
- * Uses Boost.Asio stackful coroutines for async I/O and llhttp for HTTP parsing.
+ * Uses boost::fibers with Asio integration for async I/O.
+ * HTTP handlers run as go routines (fibers).
  *
  * Non-template implementations are in http.cpp (libnog_http.a).
  * This header is precompiled (http.hpp.gch) for faster compilation.
@@ -120,10 +121,10 @@ void handle_connection(boost::asio::ip::tcp::socket socket, Handler handler) {
 /**
  * Main serve function - simple single-handler version.
  * Template must stay in header.
+ * Runs accept loop in current fiber, spawns handler fibers.
  */
 template<typename Handler>
 void serve(int port, Handler handler) {
-    auto& yield = nog::rt::yield();
     boost::asio::ip::tcp::acceptor acceptor(nog::rt::io_context());
 
     try {
@@ -141,14 +142,15 @@ void serve(int port, Handler handler) {
     while (true) {
         boost::system::error_code ec;
         boost::asio::ip::tcp::socket socket(nog::rt::io_context());
-        acceptor.async_accept(socket, yield[ec]);
+
+        // Yield fiber during accept
+        acceptor.async_accept(socket, boost::fibers::asio::yield[ec]);
 
         if (!ec) {
-            // Spawn handler in new goroutine
-            boost::asio::spawn(nog::rt::io_context(), [socket = std::move(socket), handler](boost::asio::yield_context yield) mutable {
-                nog::rt::YieldScope scope(yield);
+            // Spawn handler as go routine (fiber)
+            boost::fibers::fiber([socket = std::move(socket), handler]() mutable {
                 handle_connection(std::move(socket), handler);
-            }, boost::asio::detached);
+            }).detach();
         }
     }
 }
