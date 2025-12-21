@@ -2,8 +2,9 @@
  * @file http.hpp
  * @brief Nog HTTP runtime library.
  *
- * Provides async HTTP server functionality for Nog programs.
- * Uses ASIO for async I/O and llhttp for HTTP parsing.
+ * Provides HTTP server functionality for Nog programs.
+ * Uses boost::fibers with Asio integration for async I/O.
+ * HTTP handlers run as go routines (fibers).
  *
  * Non-template implementations are in http.cpp (libnog_http.a).
  * This header is precompiled (http.hpp.gch) for faster compilation.
@@ -11,17 +12,11 @@
 
 #pragma once
 
-// Base standard library headers (from std.hpp PCH)
+// Base standard library headers (includes nog::rt namespace with Channel, etc.)
 #include <nog/std.hpp>
 
 // Additional headers for HTTP
 #include <tuple>
-
-// ASIO headers (the slow ones to compile)
-#include <asio.hpp>
-#include <asio/awaitable.hpp>
-#include <asio/experimental/channel.hpp>
-#include <asio/experimental/awaitable_operators.hpp>
 
 // HTTP parser
 #include <llhttp.h>
@@ -101,22 +96,23 @@ Response not_found();
 std::string format_response(const Response& resp);
 
 /**
- * Async request reader - reads until complete HTTP message is received.
+ * Reads an HTTP request from a socket (blocking in goroutine context).
  */
-asio::awaitable<Request> read_request(asio::ip::tcp::socket& socket);
+Request read_request(boost::asio::ip::tcp::socket& socket);
 
 /**
- * Handle a single connection with an async handler.
+ * Handle a single connection with a handler.
  * Template must stay in header.
  */
 template<typename Handler>
-asio::awaitable<void> handle_connection_async(asio::ip::tcp::socket socket, Handler handler) {
+void handle_connection(boost::asio::ip::tcp::socket socket, Handler handler) {
     try {
-        Request req = co_await read_request(socket);
-        Response resp = co_await handler(req);
+        Request req = read_request(socket);
+        Response resp = handler(req);
 
         std::string response_str = format_response(resp);
-        co_await asio::async_write(socket, asio::buffer(response_str), asio::use_awaitable);
+        boost::system::error_code ec;
+        boost::asio::write(socket, boost::asio::buffer(response_str), ec);
     } catch (const std::exception& e) {
         // Connection closed or error
     }
@@ -124,29 +120,38 @@ asio::awaitable<void> handle_connection_async(asio::ip::tcp::socket socket, Hand
 
 /**
  * Main serve function - simple single-handler version.
- * Handler must be an async function returning asio::awaitable<Response>.
  * Template must stay in header.
+ * Runs accept loop in current fiber, spawns handler fibers.
  */
 template<typename Handler>
-asio::awaitable<void> serve(int port, Handler handler) {
-    auto executor = co_await asio::this_coro::executor;
-    asio::ip::tcp::acceptor acceptor(executor);
+void serve(int port, Handler handler) {
+    boost::asio::ip::tcp::acceptor acceptor(nog::rt::io_context());
 
     try {
-        acceptor.open(asio::ip::tcp::v4());
-        acceptor.set_option(asio::socket_base::reuse_address(true));
-        acceptor.bind({asio::ip::tcp::v4(), static_cast<asio::ip::port_type>(port)});
+        acceptor.open(boost::asio::ip::tcp::v4());
+        acceptor.set_option(boost::asio::socket_base::reuse_address(true));
+        acceptor.bind({boost::asio::ip::tcp::v4(), static_cast<boost::asio::ip::port_type>(port)});
         acceptor.listen();
-    } catch (const std::system_error& e) {
+    } catch (const boost::system::system_error& e) {
         std::cerr << "Error: Failed to bind to port " << port << ": " << e.what() << std::endl;
-        co_return;
+        return;
     }
 
     std::cout << "HTTP server listening on port " << port << std::endl;
 
     while (true) {
-        asio::ip::tcp::socket socket = co_await acceptor.async_accept(asio::use_awaitable);
-        asio::co_spawn(executor, handle_connection_async(std::move(socket), handler), asio::detached);
+        boost::system::error_code ec;
+        boost::asio::ip::tcp::socket socket(nog::rt::io_context());
+
+        // Yield fiber during accept
+        acceptor.async_accept(socket, boost::fibers::asio::yield[ec]);
+
+        if (!ec) {
+            // Spawn handler as go routine (fiber)
+            boost::fibers::fiber([socket = std::move(socket), handler]() mutable {
+                handle_connection(std::move(socket), handler);
+            }).detach();
+        }
     }
 }
 
@@ -154,27 +159,27 @@ asio::awaitable<void> serve(int port, Handler handler) {
  * App struct for routing-based HTTP server.
  */
 struct App {
-    std::vector<std::tuple<std::string, std::string, std::function<asio::awaitable<Response>(Request)>>> routes;
+    std::vector<std::tuple<std::string, std::string, std::function<Response(Request)>>> routes;
 
     /**
      * Register a GET route handler.
      */
-    void get(const std::string& path, std::function<asio::awaitable<Response>(Request)> handler);
+    void get(const std::string& path, std::function<Response(Request)> handler);
 
     /**
      * Register a POST route handler.
      */
-    void post(const std::string& path, std::function<asio::awaitable<Response>(Request)> handler);
+    void post(const std::string& path, std::function<Response(Request)> handler);
 
     /**
      * Route a request to the appropriate handler.
      */
-    asio::awaitable<Response> route(const Request& req);
+    Response route(const Request& req);
 
     /**
      * Start listening on the given port.
      */
-    asio::awaitable<void> listen(int port);
+    void listen(int port);
 };
 
 }  // namespace http

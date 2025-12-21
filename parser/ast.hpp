@@ -137,14 +137,19 @@ struct NotExpr : ASTNode {
     unique_ptr<ASTNode> value;  ///< The expression to negate
 };
 
-/** @brief Await expression: await expr */
-struct AwaitExpr : ASTNode {
-    unique_ptr<ASTNode> value;  ///< The awaitable expression
+/** @brief Goroutine spawn: go func() */
+struct GoSpawn : ASTNode {
+    unique_ptr<ASTNode> call;  ///< The function call to spawn
 };
 
 /** @brief Parenthesized expression: (expr) */
 struct ParenExpr : ASTNode {
     unique_ptr<ASTNode> value;  ///< The grouped expression
+};
+
+/** @brief Address-of expression: &expr (struct pointers only) */
+struct AddressOf : ASTNode {
+    unique_ptr<ASTNode> value;  ///< The struct variable to take address of
 };
 
 //------------------------------------------------------------------------------
@@ -200,7 +205,7 @@ struct MethodCall : ASTNode {
 
 /** @brief Variable declaration: int x = 5 or x := 5 or int? x = none */
 struct VariableDecl : ASTNode {
-    string type;                   ///< Type name (empty for type inference)
+    mutable string type;           ///< Type name (empty for type inference, may be updated by typechecker)
     string name;                   ///< Variable name
     unique_ptr<ASTNode> value;     ///< Initial value expression
     bool is_optional = false;      ///< True if declared with ? (e.g., int?)
@@ -217,6 +222,7 @@ struct FieldAssignment : ASTNode {
     unique_ptr<ASTNode> object;    ///< Object containing the field
     string field_name;             ///< Field to assign
     unique_ptr<ASTNode> value;     ///< New value expression
+    mutable string object_type;    ///< Inferred type of object (set by type checker)
 };
 
 /** @brief Return statement: return expr */
@@ -263,7 +269,7 @@ struct FunctionParam {
     string name;   ///< Parameter name
 };
 
-/** @brief Function definition: fn name(params) -> ret_type { body } or async fn ... */
+/** @brief Function definition: fn name(params) -> ret_type { body } */
 struct FunctionDef : ASTNode {
     string name;                          ///< Function name
     vector<FunctionParam> params;         ///< Parameter list
@@ -271,7 +277,6 @@ struct FunctionDef : ASTNode {
     vector<unique_ptr<ASTNode>> body;     ///< Function body statements
     Visibility visibility = Visibility::Public;  ///< Access modifier
     string doc_comment;                   ///< Documentation comment (from ///)
-    bool is_async = false;                ///< True if declared with async keyword
 };
 
 /** @brief External function declaration: @extern("lib") fn name(params) -> ret_type; */
@@ -284,7 +289,7 @@ struct ExternFunctionDef : ASTNode {
     string doc_comment;                   ///< Documentation comment (from ///)
 };
 
-/** @brief Method definition: StructName :: method_name(self, params) -> ret_type { body } or async ... */
+/** @brief Method definition: StructName :: method_name(self, params) -> ret_type { body } */
 struct MethodDef : ASTNode {
     string struct_name;                   ///< Struct this method belongs to
     string name;                          ///< Method name
@@ -293,7 +298,6 @@ struct MethodDef : ASTNode {
     vector<unique_ptr<ASTNode>> body;     ///< Method body statements
     Visibility visibility = Visibility::Public;  ///< Access modifier
     string doc_comment;                   ///< Documentation comment (from ///)
-    bool is_async = false;                ///< True if declared with async keyword
 };
 
 //------------------------------------------------------------------------------
@@ -325,6 +329,7 @@ struct StructLiteral : ASTNode {
 struct FieldAccess : ASTNode {
     unique_ptr<ASTNode> object;   ///< Object to access field on
     string field_name;            ///< Field name
+    mutable string object_type;   ///< Inferred type of object (set by type checker)
 };
 
 //------------------------------------------------------------------------------

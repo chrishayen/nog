@@ -42,15 +42,14 @@ string emit_method_call(CodeGenState& state, const MethodCall& call) {
         }
     }
 
-    // Handle channel methods using ASIO experimental channel
+    // Handle channel methods - direct calls on nog::rt::Channel
     if (call.method_name == "send") {
         string val = args.empty() ? "" : args[0];
-        return emit(state, *call.object) + ".async_send(asio::error_code{}, " + val + ", asio::use_awaitable)";
+        return emit(state, *call.object) + ".send(" + val + ")";
     }
 
     if (call.method_name == "recv") {
-        // Return raw async call - will be wrapped by AwaitExpr or used in select
-        return emit(state, *call.object) + ".async_receive(asio::use_awaitable)";
+        return emit(state, *call.object) + ".recv()";
     }
 
     string obj_str = emit(state, *call.object);
@@ -58,6 +57,11 @@ string emit_method_call(CodeGenState& state, const MethodCall& call) {
     // Handle List methods - map to std::vector equivalents
     if (call.object_type.rfind("List<", 0) == 0) {
         return emit_list_method_call(state, call, obj_str, args);
+    }
+
+    // Use -> for pointer types (auto-deref like Go)
+    if (!call.object_type.empty() && call.object_type.back() == '*') {
+        return fmt::format("{}->{}({})", obj_str, call.method_name, fmt::join(args, ", "));
     }
 
     return method_call(obj_str, call.method_name, args);

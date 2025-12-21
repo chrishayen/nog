@@ -25,11 +25,11 @@ void check_for_stmt(TypeCheckerState& state, const ForStmt& for_stmt) {
         TypeInfo start_type = infer_type(state, *for_stmt.range_start);
         TypeInfo end_type = infer_type(state, *for_stmt.range_end);
 
-        if (start_type.is_awaitable || start_type.base_type != "int") {
+        if (start_type.base_type != "int") {
             error(state, "for range start must be int, got '" + format_type(start_type) + "'", for_stmt.line);
         }
 
-        if (end_type.is_awaitable || end_type.base_type != "int") {
+        if (end_type.base_type != "int") {
             error(state, "for range end must be int, got '" + format_type(end_type) + "'", for_stmt.line);
         }
 
@@ -37,7 +37,7 @@ void check_for_stmt(TypeCheckerState& state, const ForStmt& for_stmt) {
     } else {
         TypeInfo iter_type = infer_type(state, *for_stmt.iterable);
 
-        if (iter_type.is_awaitable || iter_type.base_type.rfind("List<", 0) != 0) {
+        if (iter_type.base_type.rfind("List<", 0) != 0) {
             error(state, "for-each requires a List, got '" + format_type(iter_type) + "'", for_stmt.line);
         } else {
             size_t start = 5;

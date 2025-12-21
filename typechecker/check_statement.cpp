@@ -31,21 +31,21 @@ void check_statement(TypeCheckerState& state, const ASTNode& stmt) {
         check_for_stmt(state, *for_stmt);
     } else if (auto* select_stmt = dynamic_cast<const SelectStmt*>(&stmt)) {
         check_select_stmt(state, *select_stmt);
+    } else if (auto* go_spawn = dynamic_cast<const GoSpawn*>(&stmt)) {
+        check_go_spawn(state, *go_spawn);
     } else if (auto* call = dynamic_cast<const FunctionCall*>(&stmt)) {
-        TypeInfo call_type = infer_type(state, *call);
-
-        if (call_type.is_awaitable) {
-            error(state, "unused async call result (did you forget 'await'?)", call->line);
-        }
+        infer_type(state, *call);
     } else if (auto* mcall = dynamic_cast<const MethodCall*>(&stmt)) {
-        TypeInfo call_type = infer_type(state, *mcall);
-
-        if (call_type.is_awaitable) {
-            error(state, "unused async call result (did you forget 'await'?)", mcall->line);
-        }
-    } else if (auto* await_expr = dynamic_cast<const AwaitExpr*>(&stmt)) {
-        infer_type(state, *await_expr);
+        infer_type(state, *mcall);
     }
+}
+
+/**
+ * Type checks a go spawn statement.
+ */
+void check_go_spawn(TypeCheckerState& state, const GoSpawn& spawn) {
+    // Just type check the function call
+    infer_type(state, *spawn.call);
 }
 
 } // namespace typechecker

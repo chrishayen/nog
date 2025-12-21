@@ -31,4 +31,11 @@ string emit_not_expr(CodeGenState& state, const NotExpr& expr) {
     return "!" + emit(state, *expr.value);
 }
 
+/**
+ * Emits an address-of expression: &expr.
+ */
+string emit_address_of(CodeGenState& state, const AddressOf& addr) {
+    return "&" + emit(state, *addr.value);
+}
+
 } // namespace codegen

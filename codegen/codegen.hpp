@@ -21,7 +21,6 @@
  */
 struct CodeGenState {
     bool test_mode = false;
-    bool in_async_function = false;
     const Program* current_program = nullptr;
     std::map<std::string, const Module*> imported_modules;
     std::map<std::string, const ExternFunctionDef*> extern_functions;
@@ -65,9 +64,10 @@ std::string emit_qualified_ref(const QualifiedRef& ref);
 std::string binary_expr(const std::string& left, const std::string& op, const std::string& right);
 std::string is_none(const std::string& value);
 std::string emit_not_expr(CodeGenState& state, const NotExpr& expr);
+std::string emit_address_of(CodeGenState& state, const AddressOf& addr);
 
-// Await (emit_await.cpp)
-std::string emit_await(CodeGenState& state, const AwaitExpr& expr);
+// Go spawn (emit_go_spawn.cpp)
+std::string emit_go_spawn(CodeGenState& state, const GoSpawn& spawn);
 
 // Channel (emit_channel.cpp)
 std::string emit_channel_create(const ChannelCreate& channel);
@@ -110,8 +110,8 @@ struct FunctionParam {
 std::string generate_function(CodeGenState& state, const FunctionDef& fn);
 std::string generate_method(CodeGenState& state, const MethodDef& method);
 std::string generate_test_harness(CodeGenState& state, const std::unique_ptr<Program>& program);
-std::string function_def(const std::string& name, const std::vector<FunctionParam>& params, const std::string& return_type, const std::vector<std::string>& body, bool is_async = false);
-std::string method_def(const std::string& name, const std::vector<std::pair<std::string, std::string>>& params, const std::string& return_type, const std::vector<std::string>& body_stmts, bool is_async = false);
+std::string function_def(const std::string& name, const std::vector<FunctionParam>& params, const std::string& return_type, const std::vector<std::string>& body);
+std::string method_def(const std::string& name, const std::vector<std::pair<std::string, std::string>>& params, const std::string& return_type, const std::vector<std::string>& body_stmts);
 
 // Struct emission (emit_struct.cpp)
 std::string generate_struct(CodeGenState& state, const StructDef& def);

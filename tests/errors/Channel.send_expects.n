@@ -1,6 +1,6 @@
-async fn bad_send() {
+fn bad_send() {
     ch := Channel<int>();
-    await ch.send("hello");
+    ch.send("hello");
 }
 
 fn main() {

@@ -69,7 +69,7 @@ std::string format_response(const Response& resp) {
     return response;
 }
 
-asio::awaitable<Request> read_request(asio::ip::tcp::socket& socket) {
+Request read_request(boost::asio::ip::tcp::socket& socket) {
     llhttp_t parser;
     llhttp_settings_t settings;
     llhttp_settings_init(&settings);
@@ -83,71 +83,93 @@ asio::awaitable<Request> read_request(asio::ip::tcp::socket& socket) {
     parser.data = &ctx;
 
     char buffer[8192];
+    boost::system::error_code ec;
 
-    // First read - usually gets entire request for small GETs
-    size_t n = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
+    // First read - yields fiber until data available
+    size_t n = socket.async_read_some(
+        boost::asio::buffer(buffer),
+        boost::fibers::asio::yield[ec]);
+
+    if (ec) {
+        return Request{"GET", "/", ""};
+    }
+
     llhttp_errno err = llhttp_execute(&parser, buffer, n);
 
     if (err != HPE_OK && !ctx.message_complete) {
-        co_return Request{"GET", "/", ""};
+        return Request{"GET", "/", ""};
     }
 
     // Continue reading only if message incomplete (large POST, slow client)
     while (!ctx.message_complete) {
-        n = co_await socket.async_read_some(asio::buffer(buffer), asio::use_awaitable);
+        n = socket.async_read_some(
+            boost::asio::buffer(buffer),
+            boost::fibers::asio::yield[ec]);
+
+        if (ec) {
+            return Request{"GET", "/", ""};
+        }
+
         err = llhttp_execute(&parser, buffer, n);
 
         if (err != HPE_OK && !ctx.message_complete) {
-            co_return Request{"GET", "/", ""};
+            return Request{"GET", "/", ""};
         }
     }
 
-    co_return Request{ctx.method, ctx.url, ctx.body};
+    return Request{ctx.method, ctx.url, ctx.body};
 }
 
-void App::get(const std::string& path, std::function<asio::awaitable<Response>(Request)> handler) {
+void App::get(const std::string& path, std::function<Response(Request)> handler) {
     routes.push_back({"GET", path, handler});
 }
 
-void App::post(const std::string& path, std::function<asio::awaitable<Response>(Request)> handler) {
+void App::post(const std::string& path, std::function<Response(Request)> handler) {
     routes.push_back({"POST", path, handler});
 }
 
-asio::awaitable<Response> App::route(const Request& req) {
+Response App::route(const Request& req) {
     for (const auto& [method, path, handler] : routes) {
         if (req.method == method && req.path == path) {
-            co_return co_await handler(req);
+            return handler(req);
         }
     }
 
-    co_return not_found();
+    return not_found();
 }
 
-asio::awaitable<void> App::listen(int port) {
-    auto executor = co_await asio::this_coro::executor;
-    asio::ip::tcp::acceptor acceptor(executor);
+void App::listen(int port) {
+    boost::asio::ip::tcp::acceptor acceptor(nog::rt::io_context());
 
     try {
-        acceptor.open(asio::ip::tcp::v4());
-        acceptor.set_option(asio::socket_base::reuse_address(true));
-        acceptor.bind({asio::ip::tcp::v4(), static_cast<asio::ip::port_type>(port)});
+        acceptor.open(boost::asio::ip::tcp::v4());
+        acceptor.set_option(boost::asio::socket_base::reuse_address(true));
+        acceptor.bind({boost::asio::ip::tcp::v4(), static_cast<boost::asio::ip::port_type>(port)});
         acceptor.listen();
-    } catch (const std::system_error& e) {
+    } catch (const boost::system::system_error& e) {
         std::cerr << "Error: Failed to bind to port " << port << ": " << e.what() << std::endl;
-        co_return;
+        return;
     }
 
     std::cout << "HTTP server listening on port " << port << std::endl;
 
     while (true) {
-        asio::ip::tcp::socket socket = co_await acceptor.async_accept(asio::use_awaitable);
-        auto self = this;
+        boost::system::error_code ec;
+        boost::asio::ip::tcp::socket socket(nog::rt::io_context());
 
-        asio::co_spawn(executor, [self, s = std::move(socket)]() mutable -> asio::awaitable<void> {
-            co_await handle_connection_async(std::move(s), [self](const Request& req) {
-                return self->route(req);
-            });
-        }(), asio::detached);
+        // Yield fiber during accept
+        acceptor.async_accept(socket, boost::fibers::asio::yield[ec]);
+
+        if (!ec) {
+            auto self = this;
+
+            // Spawn handler as go routine (fiber)
+            boost::fibers::fiber([self, socket = std::move(socket)]() mutable {
+                handle_connection(std::move(socket), [self](const Request& req) {
+                    return self->route(req);
+                });
+            }).detach();
+        }
     }
 }
 

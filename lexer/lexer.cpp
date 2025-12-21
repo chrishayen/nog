@@ -18,8 +18,7 @@ using namespace std;
  */
 static unordered_map<string, TokenType> keywords = {
     {"fn", TokenType::FN},
-    {"async", TokenType::ASYNC},
-    {"await", TokenType::AWAIT},
+    {"go", TokenType::GO},
     {"return", TokenType::RETURN},
     {"true", TokenType::TRUE},
     {"false", TokenType::FALSE},
@@ -314,6 +313,9 @@ vector<Token> Lexer::tokenize() {
             advance();
         } else if (current() == '@') {
             tokens.push_back({TokenType::AT, "@", start_line});
+            advance();
+        } else if (current() == '&') {
+            tokens.push_back({TokenType::AMPERSAND, "&", start_line});
             advance();
         } else if (current() == '"') {
             tokens.push_back(read_string());

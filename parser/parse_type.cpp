@@ -47,11 +47,9 @@ string token_to_type(TokenType type) {
 }
 
 /**
- * Parses a type, including function types like fn(int, int) -> int.
- * Also handles qualified types like module.Type.
- * Returns the type as a string.
+ * Parses a base type (without pointer suffix).
  */
-string parse_type(ParserState& state) {
+string parse_base_type(ParserState& state) {
     // Function type: fn(params) -> return_type
     if (check(state, TokenType::FN)) {
         advance(state);
@@ -93,10 +91,35 @@ string parse_type(ParserState& state) {
         return type;
     }
 
-    // Custom type (struct name) or qualified type (module.Type)
+    // Channel<T> type
+    if (check(state, TokenType::CHANNEL)) {
+        advance(state);
+        consume(state, TokenType::LT);
+        string element_type = parse_type(state);
+        consume(state, TokenType::GT);
+        return "Channel<" + element_type + ">";
+    }
+
+    // List<T> type
+    if (check(state, TokenType::LIST)) {
+        advance(state);
+        consume(state, TokenType::LT);
+        string element_type = parse_type(state);
+        consume(state, TokenType::GT);
+        return "List<" + element_type + ">";
+    }
+
+    // Custom type (struct name), qualified type (module.Type), or generic (Type<T>)
     if (check(state, TokenType::IDENT)) {
         string type = current(state).value;
         advance(state);
+
+        // Check for generic type parameters: Type<T>
+        if (check(state, TokenType::LT)) {
+            advance(state);
+            type += "<" + parse_type(state) + ">";
+            consume(state, TokenType::GT);
+        }
 
         // Check for qualified type: module.Type
         if (check(state, TokenType::DOT)) {
@@ -108,6 +131,24 @@ string parse_type(ParserState& state) {
     }
 
     throw runtime_error("expected type at line " + to_string(current(state).line));
+}
+
+/**
+ * Parses a type, including function types like fn(int, int) -> int.
+ * Also handles qualified types like module.Type.
+ * Handles pointer types: Type * (e.g., Person *)
+ * Returns the type as a string.
+ */
+string parse_type(ParserState& state) {
+    string type = parse_base_type(state);
+
+    // Check for pointer suffix: Type *
+    if (check(state, TokenType::STAR)) {
+        advance(state);
+        type += "*";
+    }
+
+    return type;
 }
 
 } // namespace parser

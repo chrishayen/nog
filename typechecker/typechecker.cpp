@@ -197,6 +197,13 @@ bool is_valid_type(const TypeCheckerState& state, const string& type) {
         return is_valid_type(state, element_type);
     }
 
+    // Pointer type: StructName* -> check that base is a valid struct
+    if (!type.empty() && type.back() == '*') {
+        string pointee = type.substr(0, type.length() - 1);
+        // Only struct pointers are allowed, not primitive pointers
+        return state.structs.find(pointee) != state.structs.end();
+    }
+
     size_t dot_pos = type.find('.');
 
     if (dot_pos != string::npos) {
@@ -212,16 +219,12 @@ bool is_valid_type(const TypeCheckerState& state, const string& type) {
  * Checks if actual type can be assigned to expected type.
  */
 bool types_compatible(const TypeInfo& expected, const TypeInfo& actual) {
-    if (actual.base_type == "none" && expected.is_optional && !expected.is_awaitable) {
+    if (actual.base_type == "none" && expected.is_optional) {
         return true;
     }
 
     if (actual.base_type == "unknown" || expected.base_type == "unknown") {
         return true;
-    }
-
-    if (expected.is_awaitable != actual.is_awaitable) {
-        return false;
     }
 
     if (actual.base_type.rfind("fn:", 0) == 0 && expected.base_type.rfind("fn(", 0) == 0) {
@@ -253,7 +256,7 @@ bool types_compatible(const TypeInfo& expected, const TypeInfo& actual) {
 }
 
 /**
- * Formats a type for error messages, including awaitable/optional modifiers.
+ * Formats a type for error messages, including optional modifiers.
  */
 string format_type(const TypeInfo& type) {
     string inner = type.base_type;
@@ -262,20 +265,7 @@ string format_type(const TypeInfo& type) {
         inner += "?";
     }
 
-    if (type.is_awaitable) {
-        return "awaitable<" + inner + ">";
-    }
-
     return inner;
-}
-
-/**
- * Wraps a type in an awaitable marker (used for async calls and channel ops).
- */
-TypeInfo make_awaitable(const TypeInfo& inner) {
-    TypeInfo out = inner;
-    out.is_awaitable = true;
-    return out;
 }
 
 /**

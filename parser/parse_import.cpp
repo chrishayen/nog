@@ -42,11 +42,6 @@ void prescan_definitions(ParserState& state) {
     size_t saved_pos = state.pos;
 
     while (!check(state, TokenType::EOF_TOKEN)) {
-        // Skip async keyword
-        if (check(state, TokenType::ASYNC)) {
-            advance(state);
-        }
-
         // Function: fn name(...)
         if (check(state, TokenType::FN)) {
             advance(state);

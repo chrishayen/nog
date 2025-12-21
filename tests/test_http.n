@@ -5,11 +5,11 @@
 import http;
 
 // Handler functions for HTTP requests
-async fn home(http.Request req) -> http.Response {
+fn home(http.Request req) -> http.Response {
     return http.text("Hello World");
 }
 
-async fn about(http.Request req) -> http.Response {
+fn about(http.Request req) -> http.Response {
     return http.text("About page");
 }
 

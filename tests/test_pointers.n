@@ -1,0 +1,70 @@
+Person :: struct { name str, age int }
+
+Person :: get_name(self) -> str {
+    return self.name;
+}
+
+Person :: set_age(self, int new_age) {
+    self.age = new_age;
+}
+
+Person :: greet(self, str greeting) -> str {
+    return greeting;
+}
+
+fn test_pointer_creation() {
+    bob := Person { name: "Bob", age: 30 };
+    Person p = &bob;
+    assert_eq(p.name, "Bob");
+    assert_eq(p.age, 30);
+}
+
+fn test_pointer_field_access() {
+    alice := Person { name: "Alice", age: 25 };
+    Person ptr = &alice;
+    assert_eq(ptr.name, "Alice");
+    assert_eq(ptr.age, 25);
+}
+
+fn test_pointer_method_call() {
+    chris := Person { name: "Chris", age: 32 };
+    Person p = &chris;
+    assert_eq(p.get_name(), "Chris");
+}
+
+fn test_pointer_method_with_param() {
+    person := Person { name: "Dave", age: 40 };
+    Person p = &person;
+    assert_eq(p.greet("Hello"), "Hello");
+}
+
+fn test_pointer_field_assignment() {
+    person := Person { name: "Eve", age: 20 };
+    Person p = &person;
+    p.age = 21;
+    assert_eq(person.age, 21);
+    assert_eq(p.age, 21);
+}
+
+fn test_pointer_mutation_via_method() {
+    person := Person { name: "Frank", age: 35 };
+    Person p = &person;
+    p.set_age(36);
+    assert_eq(person.age, 36);
+}
+
+fn test_pointer_inferred_type() {
+    person := Person { name: "Grace", age: 28 };
+    p := &person;
+    assert_eq(p.name, "Grace");
+    assert_eq(p.get_name(), "Grace");
+}
+
+fn test_multiple_pointers_same_struct() {
+    person := Person { name: "Heidi", age: 22 };
+    Person p1 = &person;
+    Person p2 = &person;
+    p1.age = 23;
+    assert_eq(p2.age, 23);
+    assert_eq(person.age, 23);
+}

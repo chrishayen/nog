@@ -11,22 +11,10 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax await
- * @category Async
- * @order 3
- * @description Await an async operation.
- * @syntax await expr
- * @example
- * result := await fetch_data();
- * await ch.send(42);
- * val := await ch.recv();
- */
-
-/**
  * @nog_syntax Channel Creation
  * @category Channels
  * @order 1
- * @description Create a typed channel for communication between async tasks.
+ * @description Create a typed channel for communication between goroutines.
  * @syntax Channel<type>()
  * @example
  * ch := Channel<int>();
@@ -43,6 +31,16 @@ unique_ptr<ASTNode> parse_primary(ParserState& state) {
         return not_expr;
     }
 
+    // Handle address-of expression: &expr
+    if (check(state, TokenType::AMPERSAND)) {
+        int start_line = current(state).line;
+        advance(state);
+        auto addr = make_unique<AddressOf>();
+        addr->value = parse_primary(state);
+        addr->line = start_line;
+        return addr;
+    }
+
     // Parenthesized expression: (expr)
     if (check(state, TokenType::LPAREN)) {
         Token lparen = consume(state, TokenType::LPAREN);
@@ -57,17 +55,6 @@ unique_ptr<ASTNode> parse_primary(ParserState& state) {
         group->value = parse_expression(state);
         consume(state, TokenType::RPAREN);
         return group;
-    }
-
-    // Handle await expression: await expr
-    if (check(state, TokenType::AWAIT)) {
-        int start_line = current(state).line;
-        advance(state);
-        auto await_expr = make_unique<AwaitExpr>();
-        await_expr->line = start_line;
-        await_expr->value = parse_primary(state);
-        await_expr->value = parse_postfix(state, move(await_expr->value));
-        return await_expr;
     }
 
     // Handle channel creation: Channel<int>()

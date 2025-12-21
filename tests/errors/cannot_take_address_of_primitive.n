@@ -1,0 +1,6 @@
+Person :: struct { name str }
+
+fn main() {
+    int x = 5;
+    p := &x;
+}

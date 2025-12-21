@@ -18,18 +18,7 @@ TypeInfo check_binary_expr(TypeCheckerState& state, const BinaryExpr& bin) {
 
     if (bin.op == "==" || bin.op == "!=" || bin.op == "<" ||
         bin.op == ">" || bin.op == "<=" || bin.op == ">=") {
-        if (left_type.is_awaitable || right_type.is_awaitable) {
-            error(state, "type mismatch in binary expression: '" + format_type(left_type) + "' " + bin.op +
-                  " '" + format_type(right_type) + "' (did you forget 'await'?)", bin.line);
-        }
-
         return {"bool", false, false};
-    }
-
-    if (left_type.is_awaitable || right_type.is_awaitable) {
-        error(state, "type mismatch in binary expression: '" + format_type(left_type) + "' " + bin.op +
-              " '" + format_type(right_type) + "' (did you forget 'await'?)", bin.line);
-        return {"unknown", false, false};
     }
 
     if (bin.op == "+" && left_type.base_type == "str" && right_type.base_type == "str") {
@@ -48,12 +37,7 @@ TypeInfo check_binary_expr(TypeCheckerState& state, const BinaryExpr& bin) {
  * Infers the type of an is_none expression.
  */
 TypeInfo check_is_none(TypeCheckerState& state, const IsNone& expr) {
-    TypeInfo inner_type = infer_type(state, *expr.value);
-
-    if (inner_type.is_awaitable) {
-        error(state, "cannot use 'is none' on '" + format_type(inner_type) + "' (did you forget 'await'?)", expr.line);
-    }
-
+    infer_type(state, *expr.value);
     return {"bool", false, false};
 }
 
@@ -63,7 +47,7 @@ TypeInfo check_is_none(TypeCheckerState& state, const IsNone& expr) {
 TypeInfo check_not_expr(TypeCheckerState& state, const NotExpr& not_expr) {
     TypeInfo inner_type = infer_type(state, *not_expr.value);
 
-    if (inner_type.is_awaitable || inner_type.base_type != "bool") {
+    if (inner_type.base_type != "bool") {
         error(state, "'!' operator requires bool, got '" + format_type(inner_type) + "'", not_expr.line);
     }
 
@@ -71,26 +55,32 @@ TypeInfo check_not_expr(TypeCheckerState& state, const NotExpr& not_expr) {
 }
 
 /**
- * Infers the type of an await expression.
+ * Infers the type of an address-of expression: &expr
+ * Only allowed for struct types (not primitives).
+ * Returns a pointer type: StructName -> StructName*
  */
-TypeInfo check_await_expr(TypeCheckerState& state, const AwaitExpr& await_expr) {
-    if (!state.in_async_context) {
-        error(state, "'await' can only be used inside async functions", await_expr.line);
+TypeInfo check_address_of(TypeCheckerState& state, const AddressOf& addr) {
+    if (!addr.value) {
+        return {"unknown", false, false};
     }
 
-    TypeInfo awaited_type = infer_type(state, *await_expr.value);
+    TypeInfo inner_type = infer_type(state, *addr.value);
 
-    if (awaited_type.base_type == "unknown") {
-        return awaited_type;
+    // Can only take address of lvalues (variables, field access)
+    if (!dynamic_cast<const VariableRef*>(addr.value.get()) &&
+        !dynamic_cast<const FieldAccess*>(addr.value.get())) {
+        error(state, "cannot take address of this expression", addr.line);
+        return {"unknown", false, false};
     }
 
-    if (!awaited_type.is_awaitable) {
-        error(state, "cannot await non-async value of type '" + format_type(awaited_type) + "'", await_expr.line);
-        return awaited_type;
+    // Only allow pointers to struct types, not primitives
+    if (is_primitive_type(inner_type.base_type)) {
+        error(state, "cannot take address of primitive type '" + format_type(inner_type) +
+              "'; pointers are only allowed for struct types", addr.line);
+        return {"unknown", false, false};
     }
 
-    awaited_type.is_awaitable = false;
-    return awaited_type;
+    return {inner_type.base_type + "*", false, false};
 }
 
 } // namespace typechecker

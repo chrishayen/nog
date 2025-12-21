@@ -9,6 +9,8 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 find_package(fmt REQUIRED)
 find_package(tomlplusplus REQUIRED)
+cmake_policy(SET CMP0167 NEW)
+find_package(Boost REQUIRED COMPONENTS context fiber)
 
 # Fetch llhttp for HTTP parsing
 include(FetchContent)
@@ -80,7 +82,7 @@ add_library(nog_lib
     codegen/emit_literals.cpp
     codegen/emit_refs.cpp
     codegen/emit_binary.cpp
-    codegen/emit_await.cpp
+    codegen/emit_go_spawn.cpp
     codegen/emit_channel.cpp
     codegen/emit_list.cpp
     codegen/emit_method_call.cpp
@@ -101,6 +103,8 @@ target_link_libraries(nog nog_lib)
 # Copy runtime headers and libraries to build directory for development
 add_custom_target(nog_runtime_headers ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog/fiber_asio
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/detail
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/lib
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/std/std.hpp
@@ -111,6 +115,15 @@ add_custom_target(nog_runtime_headers ALL
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/fs/fs.hpp
         ${CMAKE_BINARY_DIR}/include/nog/fs.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/round_robin.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/round_robin.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/yield.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/yield.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/detail/yield.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/detail/yield.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${llhttp_SOURCE_DIR}/include/llhttp.h
         ${CMAKE_BINARY_DIR}/include/llhttp.h
@@ -132,11 +145,11 @@ add_library(nog_http_runtime STATIC
 )
 target_compile_features(nog_http_runtime PRIVATE cxx_std_23)
 target_include_directories(nog_http_runtime PRIVATE
-    ${CMAKE_SOURCE_DIR}/external/asio/include
+    ${Boost_INCLUDE_DIRS}
     ${CMAKE_BINARY_DIR}/include
     ${llhttp_SOURCE_DIR}/include
 )
-target_link_libraries(nog_http_runtime llhttp_static)
+target_link_libraries(nog_http_runtime llhttp_static Boost::context Boost::fiber)
 add_dependencies(nog_http_runtime nog_runtime_headers)
 
 # Copy nog_http library to lib/ after build
@@ -152,6 +165,8 @@ add_custom_command(TARGET nog_http_runtime POST_BUILD
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch
     COMMAND ${CMAKE_CXX_COMPILER} -std=c++23
+            -I${Boost_INCLUDE_DIRS}
+            -I${CMAKE_BINARY_DIR}/include
             -x c++-header
             ${CMAKE_BINARY_DIR}/include/nog/std.hpp
             -o ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch
@@ -164,7 +179,7 @@ add_custom_command(
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/include/nog/http.hpp.gch
     COMMAND ${CMAKE_CXX_COMPILER} -std=c++23
-            -I${CMAKE_SOURCE_DIR}/external/asio/include
+            -I${Boost_INCLUDE_DIRS}
             -I${CMAKE_BINARY_DIR}/include
             -x c++-header
             ${CMAKE_BINARY_DIR}/include/nog/http.hpp

@@ -11,6 +11,7 @@ namespace typechecker {
 
 /**
  * Type checks a variable declaration statement.
+ * Handles struct pointer syntax: Person p = &bob creates a Person* variable.
  */
 void check_variable_decl_stmt(TypeCheckerState& state, const VariableDecl& decl) {
     if (!decl.type.empty() && !is_valid_type(state, decl.type)) {
@@ -21,14 +22,25 @@ void check_variable_decl_stmt(TypeCheckerState& state, const VariableDecl& decl)
         TypeInfo init_type = infer_type(state, *decl.value);
 
         if (!decl.type.empty()) {
+            // Allow "Person p = &bob" syntax: declared as Person, assigned Person*
+            // The variable becomes a pointer type
+            bool is_pointer_assignment = !init_type.base_type.empty() &&
+                                         init_type.base_type.back() == '*' &&
+                                         init_type.base_type == decl.type + "*";
+
+            if (is_pointer_assignment) {
+                // Variable is a pointer - update type for codegen and use the pointer type
+                decl.type = init_type.base_type;
+                declare_local(state, decl.name, init_type, decl.line);
+                return;
+            }
+
             TypeInfo expected = {decl.type, decl.is_optional, false};
 
             if (!types_compatible(expected, init_type)) {
                 error(state, "cannot assign '" + format_type(init_type) + "' to variable of type '" + format_type(expected) + "'", decl.line);
             }
-        }
 
-        if (!decl.type.empty()) {
             declare_local(state, decl.name, {decl.type, decl.is_optional, false}, decl.line);
         } else {
             declare_local(state, decl.name, init_type, decl.line);
@@ -57,24 +69,28 @@ void check_assignment_stmt(TypeCheckerState& state, const Assignment& assign) {
 
 /**
  * Type checks a field assignment statement.
+ * Auto-dereferences pointer types (like Go).
  */
 void check_field_assignment_stmt(TypeCheckerState& state, const FieldAssignment& fa) {
     TypeInfo obj_type = infer_type(state, *fa.object);
+    fa.object_type = obj_type.base_type;  // Store for codegen (includes pointer suffix)
 
-    if (obj_type.is_awaitable) {
-        error(state, "cannot assign to field on '" + format_type(obj_type) + "' (did you forget 'await'?)", fa.line);
-        return;
+    // Auto-dereference pointers for field assignment (like Go)
+    string struct_type = obj_type.base_type;
+
+    if (!struct_type.empty() && struct_type.back() == '*') {
+        struct_type = struct_type.substr(0, struct_type.length() - 1);
     }
 
-    if (state.structs.find(obj_type.base_type) == state.structs.end()) {
+    if (state.structs.find(struct_type) == state.structs.end()) {
         error(state, "cannot access field on non-struct type '" + format_type(obj_type) + "'", fa.line);
         return;
     }
 
-    string field_type = get_field_type(state, obj_type.base_type, fa.field_name);
+    string field_type = get_field_type(state, struct_type, fa.field_name);
 
     if (field_type.empty()) {
-        error(state, "struct '" + obj_type.base_type + "' has no field '" + fa.field_name + "'", fa.line);
+        error(state, "struct '" + struct_type + "' has no field '" + fa.field_name + "'", fa.line);
         return;
     }
 

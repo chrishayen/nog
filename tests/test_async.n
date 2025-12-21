@@ -1,85 +1,89 @@
 // ============================================
-// Async Functions
+// Goroutine Tests - Stackful Coroutines
 // ============================================
 
-async fn async_returns_int() -> int {
+// ============================================
+// Regular Functions (no async keyword needed)
+// ============================================
+
+fn returns_int() -> int {
     return 42;
 }
 
-async fn async_add(int a, int b) -> int {
+fn add(int a, int b) -> int {
     return a + b;
 }
 
-async fn async_with_await() -> int {
-    result := await async_returns_int();
+fn with_call() -> int {
+    result := returns_int();
     return result;
 }
 
-async fn async_void_fn() {
+fn void_fn() {
     x := 1;
 }
 
-async fn async_typed_await() -> int {
-    int val = await async_returns_int();
+fn typed_call() -> int {
+    int val = returns_int();
     return val;
 }
 
-async fn async_multiple_awaits() -> int {
-    a := await async_returns_int();
-    b := await async_add(a, 10);
+fn multiple_calls() -> int {
+    a := returns_int();
+    b := add(a, 10);
     return b;
 }
 
-async fn async_await_in_expr() -> int {
-    result := await async_returns_int() + 10;
+fn call_in_expr() -> int {
+    result := returns_int() + 10;
     return result;
 }
 
-async fn async_nested() -> int {
-    result := await async_add(await async_returns_int(), 5);
+fn nested_calls() -> int {
+    result := add(returns_int(), 5);
     return result;
 }
 
 // ============================================
-// Async Methods
+// Methods (no async keyword needed)
 // ============================================
 
 Counter :: struct {
     value int
 }
 
-async Counter :: get_value_async(self) -> int {
+Counter :: get_value(self) -> int {
     return self.value;
 }
 
-async Counter :: add_async(self, int amount) -> int {
-    current := await self.get_value_async();
+Counter :: add_amount(self, int amount) -> int {
+    current := self.get_value();
     return current + amount;
 }
 
-async Counter :: increment_async(self) {
+Counter :: increment(self) {
     self.value = self.value + 1;
 }
 
 // ============================================
-// Async Tests
+// Function Tests
 // ============================================
 
-async fn test_async_functions() {
-    assert_eq(await async_returns_int(), 42);
-    assert_eq(await async_add(2, 3), 5);
-    assert_eq(await async_with_await(), 42);
-    assert_eq(await async_typed_await(), 42);
-    assert_eq(await async_multiple_awaits(), 52);
-    assert_eq(await async_await_in_expr(), 52);
-    assert_eq(await async_nested(), 47);
+fn test_functions() {
+    assert_eq(returns_int(), 42);
+    assert_eq(add(2, 3), 5);
+    assert_eq(with_call(), 42);
+    assert_eq(typed_call(), 42);
+    assert_eq(multiple_calls(), 52);
+    assert_eq(call_in_expr(), 52);
+    assert_eq(nested_calls(), 47);
 }
 
-async fn test_async_methods() {
+fn test_methods() {
     c := Counter{ value: 41 };
-    assert_eq(await c.get_value_async(), 41);
-    assert_eq(await c.add_async(1), 42);
-    await c.increment_async();
+    assert_eq(c.get_value(), 41);
+    assert_eq(c.add_amount(1), 42);
+    c.increment();
     assert_eq(c.value, 42);
 }
 
@@ -87,24 +91,32 @@ async fn test_async_methods() {
 // Channel Creation
 // ============================================
 
-async fn test_channel_create() {
+fn test_channel_create() {
     ch := Channel<int>();
 }
 
-async fn test_channel_types() {
+fn test_channel_types() {
     ch_int := Channel<int>();
     ch_str := Channel<str>();
     ch_bool := Channel<bool>();
 }
 
 // ============================================
-// Channel Send/Recv
+// Channel Send/Recv with Goroutines
 // ============================================
 
-async fn test_send_recv() {
+fn sender(Channel<int> ch, int val) {
+    ch.send(val);
+}
+
+fn test_send_recv() {
     ch := Channel<int>();
-    await ch.send(42);
-    val := await ch.recv();
+
+    // Spawn a goroutine to send
+    go sender(ch, 42);
+
+    // Receive blocks until value is available
+    val := ch.recv();
     assert_eq(val, 42);
 }
 
@@ -112,13 +124,12 @@ async fn test_send_recv() {
 // Select Statement
 // ============================================
 
-async fn test_select_recv() {
+fn test_select_recv() {
     ch1 := Channel<int>();
     ch2 := Channel<int>();
 
-    // Make the select deterministic and non-blocking by ensuring exactly one
-    // channel has a value ready to receive.
-    await ch1.send(41);
+    // Spawn a goroutine to send on ch1
+    go sender(ch1, 41);
 
     chosen := 0;
     selected := 0;

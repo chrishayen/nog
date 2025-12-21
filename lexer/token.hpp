@@ -152,8 +152,7 @@ using namespace std;
 enum class TokenType {
     // Keywords
     FN,
-    ASYNC,
-    AWAIT,
+    GO,
     RETURN,
     TRUE,
     FALSE,
@@ -229,6 +228,9 @@ enum class TokenType {
 
     // Logical
     NOT,
+
+    // Pointer
+    AMPERSAND,
 
     OPTIONAL,
     SEMICOLON,

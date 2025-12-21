@@ -64,12 +64,12 @@ string emit(CodeGenState& state, const ASTNode& node) {
         return emit_not_expr(state, *expr);
     }
 
-    if (auto* expr = dynamic_cast<const AwaitExpr*>(&node)) {
-        return emit_await(state, *expr);
-    }
-
     if (auto* expr = dynamic_cast<const ParenExpr*>(&node)) {
         return "(" + emit(state, *expr->value) + ")";
+    }
+
+    if (auto* addr = dynamic_cast<const AddressOf*>(&node)) {
+        return emit_address_of(state, *addr);
     }
 
     if (auto* channel = dynamic_cast<const ChannelCreate*>(&node)) {
@@ -101,8 +101,7 @@ string emit(CodeGenState& state, const ASTNode& node) {
     }
 
     if (auto* ret = dynamic_cast<const ReturnStmt*>(&node)) {
-        string keyword = state.in_async_function ? "co_return" : "return";
-        return keyword + " " + emit(state, *ret->value) + ";";
+        return "return " + emit(state, *ret->value) + ";";
     }
 
     if (auto* lit = dynamic_cast<const StructLiteral*>(&node)) {

@@ -13,10 +13,6 @@ namespace typechecker {
  * Type checks a select statement.
  */
 void check_select_stmt(TypeCheckerState& state, const SelectStmt& select_stmt) {
-    if (!state.in_async_context) {
-        error(state, "'select' can only be used inside async functions", select_stmt.line);
-    }
-
     for (const auto& select_case : select_stmt.cases) {
         // Each case introduces its own scope so bindings and declarations inside one
         // case do not leak into other cases or after the select statement.
@@ -24,7 +20,7 @@ void check_select_stmt(TypeCheckerState& state, const SelectStmt& select_stmt) {
 
         TypeInfo channel_type = infer_type(state, *select_case->channel);
 
-        if (channel_type.is_awaitable || channel_type.base_type.rfind("Channel<", 0) != 0) {
+        if (channel_type.base_type.rfind("Channel<", 0) != 0) {
             error(state, "select case requires a channel, got '" + format_type(channel_type) + "'", select_case->line);
             pop_scope(state);
             continue;
