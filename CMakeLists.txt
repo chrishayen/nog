@@ -9,6 +9,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 find_package(fmt REQUIRED)
 find_package(tomlplusplus REQUIRED)
+cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED COMPONENTS context fiber)
 
 # Fetch llhttp for HTTP parsing
