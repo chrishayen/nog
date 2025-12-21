@@ -41,8 +41,8 @@ string generate_select(CodeGenState& state, const SelectStmt& stmt) {
         }
     }
 
-    // Yield to let other goroutines run
-    out += "\tboost::asio::post(nog::rt::io_context(), nog::rt::yield());\n";
+    // Yield to let other fibers run
+    out += "\tboost::this_fiber::yield();\n";
     out += "}\n";
 
     return out;

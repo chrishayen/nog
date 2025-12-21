@@ -65,7 +65,7 @@ string method_def(const string& name,
 /**
  * Generates a C++ function from a Nog FunctionDef.
  * Maps Nog types to C++ types and handles main() specially.
- * Main is wrapped with boost::asio::spawn for goroutine support.
+ * Main is wrapped in a fiber for goroutine support.
  */
 string generate_function(CodeGenState& state, const FunctionDef& fn) {
     bool is_main = (fn.name == "main" && !state.test_mode);
@@ -89,21 +89,9 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
         string rt_type = fn.return_type.empty() ? "" : fn.return_type;
         out = function_def("_nog_main", params, rt_type, body);
 
-        // Generate int main() with thread pool for parallel goroutines
+        // Generate int main() that runs _nog_main in a fiber
         out += "\nint main() {\n";
-        out += "\tboost::asio::io_context io_context;\n";
-        out += "\tnog::rt::global_io_context = &io_context;\n\n";
-        out += "\tauto work = boost::asio::make_work_guard(io_context);\n";
-        out += "\tstd::vector<std::thread> threads;\n";
-        out += "\tfor (unsigned i = 0; i < std::max(1u, std::thread::hardware_concurrency()); i++) {\n";
-        out += "\t\tthreads.emplace_back([&io_context] { io_context.run(); });\n";
-        out += "\t}\n\n";
-        out += "\tboost::asio::spawn(io_context, [](boost::asio::yield_context yield) {\n";
-        out += "\t\tnog::rt::YieldScope scope(yield);\n";
-        out += "\t\t_nog_main();\n";
-        out += "\t}, boost::asio::detached);\n\n";
-        out += "\twork.reset();\n";
-        out += "\tfor (auto& t : threads) t.join();\n";
+        out += "\tboost::fibers::fiber(_nog_main).join();\n";
         out += "\treturn 0;\n";
         out += "}\n";
     } else {
@@ -146,9 +134,7 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
         state.extern_functions[ext->name] = ext.get();
     }
 
-    string out = "#include <nog/std.hpp>\n";
-    out += "#include <boost/asio.hpp>\n";
-    out += "#include <boost/asio/spawn.hpp>\n\n";
+    string out = "#include <nog/std.hpp>\n\n";
 
     // Generate extern "C" declarations for FFI
     out += generate_extern_declarations(program);
@@ -177,23 +163,12 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
     }
 
     out += "\nint main() {\n";
-    out += "\tboost::asio::io_context io_context;\n";
-    out += "\tnog::rt::global_io_context = &io_context;\n\n";
-    out += "\tauto work = boost::asio::make_work_guard(io_context);\n";
-    out += "\tstd::vector<std::thread> threads;\n";
-    out += "\tfor (unsigned i = 0; i < std::max(1u, std::thread::hardware_concurrency()); i++) {\n";
-    out += "\t\tthreads.emplace_back([&io_context] { io_context.run(); });\n";
-    out += "\t}\n\n";
 
+    // Run each test in a fiber, join to wait for completion
     for (const auto& name : test_funcs) {
-        out += "\tboost::asio::spawn(io_context, [](boost::asio::yield_context yield) {\n";
-        out += "\t\tnog::rt::YieldScope scope(yield);\n";
-        out += "\t\t" + name + "();\n";
-        out += "\t}, boost::asio::detached);\n";
+        out += "\tboost::fibers::fiber(" + name + ").join();\n";
     }
 
-    out += "\n\twork.reset();\n";
-    out += "\tfor (auto& t : threads) t.join();\n";
     out += "\treturn _failures;\n";
     out += "}\n";
 

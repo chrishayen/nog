@@ -20,34 +20,36 @@
 #include <utility>
 #include <thread>
 #include <mutex>
+#include <chrono>
 
+#include <boost/fiber/all.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/spawn.hpp>
 
 namespace nog::rt {
 
 /**
- * Thread-local yield context for the current goroutine.
+ * Thread-local yield context for Asio integration (used by HTTP).
  */
 inline thread_local boost::asio::yield_context* current_yield = nullptr;
 
 /**
- * Global io_context for the runtime.
+ * Global io_context for async I/O (used by HTTP).
  */
 inline boost::asio::io_context* global_io_context = nullptr;
 
 /**
- * Returns the current yield context.
+ * Returns the current yield context (for HTTP async I/O).
  */
 inline boost::asio::yield_context& yield() {
     if (!current_yield) {
-        throw std::runtime_error("blocking operation used outside goroutine context");
+        throw std::runtime_error("blocking operation used outside async context");
     }
     return *current_yield;
 }
 
 /**
- * Returns the global io_context.
+ * Returns the global io_context (for HTTP).
  */
 inline boost::asio::io_context& io_context() {
     if (!global_io_context) {
@@ -57,7 +59,7 @@ inline boost::asio::io_context& io_context() {
 }
 
 /**
- * RAII scope that sets the current yield context.
+ * RAII scope that sets the current yield context (for HTTP).
  */
 class YieldScope {
 public:
@@ -72,102 +74,61 @@ private:
 };
 
 /**
- * Typed channel for communication between goroutines.
- *
- * Thread-safe implementation using mutex for multi-threaded io_context.
- * Goroutines can run in parallel on multiple OS threads.
+ * Typed channel for communication between fibers.
+ * Wraps boost::fibers::buffered_channel with send/recv API.
+ * Uses capacity of 1 to approximate unbuffered semantics while
+ * providing try_pop() for select statement polling.
  */
 template<typename T>
 class Channel {
 public:
-    Channel() : has_value_(false), closed_(false) {}
+    Channel() : ch_(2) {}  // capacity of 2 (minimum for Boost.Fiber)
 
     /**
-     * Send a value through the channel. Blocks until received.
+     * Send a value through the channel. Blocks until space available.
      */
     void send(const T& value) {
-        std::unique_lock<std::mutex> lock(mutex_);
-
-        while (has_value_ && !closed_) {
-            lock.unlock();
-            boost::asio::post(nog::rt::io_context(), nog::rt::yield());
-            lock.lock();
-        }
-
-        if (closed_) {
-            throw std::runtime_error("send on closed channel");
-        }
-
-        value_ = value;
-        has_value_ = true;
+        ch_.push(value);
     }
 
     /**
      * Receive a value from the channel. Blocks until available.
      */
     T recv() {
-        std::unique_lock<std::mutex> lock(mutex_);
-
-        while (!has_value_ && !closed_) {
-            lock.unlock();
-            boost::asio::post(nog::rt::io_context(), nog::rt::yield());
-            lock.lock();
-        }
-
-        if (!has_value_ && closed_) {
-            throw std::runtime_error("receive on closed channel");
-        }
-
-        T result = std::move(value_);
-        has_value_ = false;
-        return result;
+        T value;
+        ch_.pop(value);
+        return value;
     }
 
     /**
      * Try to receive a value without blocking. Returns pair<bool, T>.
      */
     std::pair<bool, T> try_recv() {
-        std::lock_guard<std::mutex> lock(mutex_);
-
-        if (has_value_) {
-            T result = std::move(value_);
-            has_value_ = false;
-            return {true, result};
+        T value;
+        auto status = ch_.try_pop(value);
+        if (status == boost::fibers::channel_op_status::success) {
+            return {true, value};
         }
-
         return {false, T{}};
-    }
-
-    /**
-     * Check if channel has a value ready.
-     */
-    bool ready() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return has_value_;
     }
 
     /**
      * Close the channel.
      */
     void close() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        closed_ = true;
+        ch_.close();
     }
 
 private:
-    T value_;
-    bool has_value_;
-    bool closed_;
-    mutable std::mutex mutex_;
+    boost::fibers::buffered_channel<T> ch_;
 };
 
 /**
  * Sleeps for the specified number of milliseconds.
- * Yields to other goroutines during sleep.
+ * Yields to other fibers during sleep.
  */
 inline void sleep(int ms) {
-    boost::asio::steady_timer timer(io_context(), std::chrono::milliseconds(ms));
-    timer.async_wait(yield());
+    boost::this_fiber::sleep_for(std::chrono::milliseconds(ms));
 }
 
 }  // namespace nog::rt

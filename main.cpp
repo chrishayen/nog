@@ -95,8 +95,8 @@ string build_compile_cmd(const TranspileResult& result, const string& output, co
         }
     }
 
-    // Always link boost_context for stackful coroutines and pthread for threads
-    cmd += " -lboost_context -lpthread";
+    // Always link boost_fiber and boost_context for fiber-based concurrency
+    cmd += " -lboost_fiber -lboost_context -lpthread";
 
     cmd += " 2>&1";
     return cmd;

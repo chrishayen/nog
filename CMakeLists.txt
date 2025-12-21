@@ -9,7 +9,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 find_package(fmt REQUIRED)
 find_package(tomlplusplus REQUIRED)
-find_package(Boost REQUIRED COMPONENTS context)
+find_package(Boost REQUIRED COMPONENTS context fiber)
 
 # Fetch llhttp for HTTP parsing
 include(FetchContent)
@@ -137,7 +137,7 @@ target_include_directories(nog_http_runtime PRIVATE
     ${CMAKE_BINARY_DIR}/include
     ${llhttp_SOURCE_DIR}/include
 )
-target_link_libraries(nog_http_runtime llhttp_static Boost::context)
+target_link_libraries(nog_http_runtime llhttp_static Boost::context Boost::fiber)
 add_dependencies(nog_http_runtime nog_runtime_headers)
 
 # Copy nog_http library to lib/ after build
