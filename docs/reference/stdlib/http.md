@@ -20,7 +20,7 @@ Represents an incoming HTTP request.
 
 **Example:**
 ```nog
-async fn handle(http.Request req) -> http.Response {
+fn handle(http.Request req) -> http.Response {
     if req.method == "POST" {
         return http.text("Received: " + req.body);
     }
@@ -54,7 +54,7 @@ HTTP application with routing support.
 app := http.App {};
 app.get("/", home_handler);
 app.post("/submit", submit_handler);
-await app.listen(8080);
+app.listen(8080);
 ```
 
 ## Functions
@@ -119,7 +119,7 @@ if path == "/unknown" {
 Starts an HTTP server on the specified port with a single handler function.
 
 ```nog
-async fn serve(int port, fn(http.Request) handler)
+fn serve(int port, fn(http.Request) handler)
 ```
 
 **Parameters:**
@@ -129,9 +129,9 @@ async fn serve(int port, fn(http.Request) handler)
 
 **Example:**
 ```nog
-async fn handle(http.Request req) -> http.Response {
+fn handle(http.Request req) -> http.Response {
     return http.text("Hello!");
 }
-await http.serve(8080, handle);
+http.serve(8080, handle);
 ```
 

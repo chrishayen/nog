@@ -4,22 +4,22 @@
 
 import http;
 
-async fn home(http.Request req) -> http.Response {
+fn home(http.Request req) -> http.Response {
     return http.text("Hello from Nog HTTP Server!");
 }
 
-async fn about(http.Request req) -> http.Response {
+fn about(http.Request req) -> http.Response {
     return http.text("Nog is a modern programming language");
 }
 
-async fn api_hello(http.Request req) -> http.Response {
+fn api_hello(http.Request req) -> http.Response {
     return http.json("{message: Hello}");
 }
 
-async fn main() {
+fn main() {
     app := http.App {};
     app.get("/", home);
     app.get("/about", about);
     app.get("/api/hello", api_hello);
-    await app.listen(8080);
+    app.listen(8080);
 }

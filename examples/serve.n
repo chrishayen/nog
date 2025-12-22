@@ -6,7 +6,7 @@
 import http;
 import fs;
 
-async fn handle(http.Request req) -> http.Response {
+fn handle(http.Request req) -> http.Response {
     path := "." + req.path;
 
     if path == "./" {
@@ -25,7 +25,7 @@ async fn handle(http.Request req) -> http.Response {
     return http.text(content);
 }
 
-async fn main() {
+fn main() {
     print("Serving files from current directory on http://localhost:8080");
-    await http.serve(8080, handle);
+    http.serve(8080, handle);
 }

@@ -51,6 +51,6 @@ s.listen(int port)
 
 **Example:**
 ```nog
-await app.listen(8080);
+app.listen(8080);
 ```
 

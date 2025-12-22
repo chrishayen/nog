@@ -14,7 +14,7 @@ s.send(T value)
 
 **Example:**
 ```nog
-await ch.send(42);
+ch.send(42);
 ```
 
 ## recv
@@ -29,6 +29,6 @@ s.recv() -> T
 
 **Example:**
 ```nog
-val := await ch.recv();
+val := ch.recv();
 ```
 

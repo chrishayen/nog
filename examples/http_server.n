@@ -4,7 +4,7 @@
 
 import http;
 
-async fn handle_request(http.Request req) -> http.Response {
+fn handle_request(http.Request req) -> http.Response {
     if req.path == "/" {
         return http.text("Hello from Nog HTTP Server!");
     }
@@ -16,6 +16,6 @@ async fn handle_request(http.Request req) -> http.Response {
     return http.not_found();
 }
 
-async fn main() {
-    await http.serve(8080, handle_request);
+fn main() {
+    http.serve(8080, handle_request);
 }
