@@ -55,6 +55,9 @@ bool is_struct_type(const ParserState& state, const std::string& name);
 std::unique_ptr<StructDef> parse_struct_def(ParserState& state, const std::string& name, Visibility vis);
 std::unique_ptr<StructLiteral> parse_struct_literal(ParserState& state, const std::string& name);
 
+// Error utilities (parse_error.cpp)
+std::unique_ptr<ErrorDef> parse_error_def(ParserState& state, const std::string& name, Visibility vis);
+
 // Import utilities (parse_import.cpp)
 bool is_imported_module(const ParserState& state, const std::string& name);
 bool is_function_name(const ParserState& state, const std::string& name);
@@ -77,6 +80,8 @@ std::unique_ptr<FunctionCall> parse_function_call(ParserState& state);
 std::unique_ptr<VariableDecl> parse_variable_decl(ParserState& state);
 std::unique_ptr<VariableDecl> parse_inferred_decl(ParserState& state);
 std::unique_ptr<ReturnStmt> parse_return(ParserState& state);
+std::unique_ptr<FailStmt> parse_fail(ParserState& state);
+std::unique_ptr<FailStmt> parse_fail_expr(ParserState& state);
 std::unique_ptr<IfStmt> parse_if(ParserState& state);
 std::unique_ptr<WhileStmt> parse_while(ParserState& state);
 std::unique_ptr<ForStmt> parse_for(ParserState& state);
@@ -84,6 +89,8 @@ std::unique_ptr<SelectStmt> parse_select(ParserState& state);
 
 // Expression parsing (parse_expression.cpp)
 std::unique_ptr<ASTNode> parse_expression(ParserState& state);
+std::unique_ptr<ASTNode> parse_or(ParserState& state);
+std::unique_ptr<ASTNode> parse_default(ParserState& state);
 std::unique_ptr<ASTNode> parse_comparison(ParserState& state);
 std::unique_ptr<ASTNode> parse_additive(ParserState& state);
 std::unique_ptr<ASTNode> parse_primary(ParserState& state);

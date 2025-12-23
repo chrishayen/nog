@@ -23,6 +23,8 @@ void check_statement(TypeCheckerState& state, const ASTNode& stmt) {
         check_field_assignment_stmt(state, *fa);
     } else if (auto* ret = dynamic_cast<const ReturnStmt*>(&stmt)) {
         check_return_stmt(state, *ret);
+    } else if (auto* fail_stmt = dynamic_cast<const FailStmt*>(&stmt)) {
+        check_fail_stmt(state, *fail_stmt);
     } else if (auto* if_stmt = dynamic_cast<const IfStmt*>(&stmt)) {
         check_if_stmt(state, *if_stmt);
     } else if (auto* while_stmt = dynamic_cast<const WhileStmt*>(&stmt)) {
@@ -37,6 +39,15 @@ void check_statement(TypeCheckerState& state, const ASTNode& stmt) {
         infer_type(state, *call);
     } else if (auto* mcall = dynamic_cast<const MethodCall*>(&stmt)) {
         infer_type(state, *mcall);
+    }
+}
+
+/**
+ * Validates a fail statement. Ensures it's used in a fallible function.
+ */
+void check_fail_stmt(TypeCheckerState& state, const FailStmt& fail) {
+    if (!state.current_function_is_fallible) {
+        error(state, "fail can only be used in fallible functions (use -> T or err)", fail.line);
     }
 }
 

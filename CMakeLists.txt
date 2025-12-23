@@ -31,10 +31,12 @@ add_library(nog_lib
     parser/parse_statement.cpp
     parser/parse_function.cpp
     parser/parse_struct.cpp
+    parser/parse_error.cpp
     parser/parse_type.cpp
     parser/parse_import.cpp
     parser/parse_ffi.cpp
     parser/parse_return.cpp
+    parser/parse_fail.cpp
     parser/parse_if.cpp
     parser/parse_while.cpp
     parser/parse_for.cpp
@@ -44,6 +46,7 @@ add_library(nog_lib
     parser/parse_additive.cpp
     parser/parse_primary.cpp
     parser/parse_postfix.cpp
+    parser/parse_or.cpp
     typechecker/typechecker.cpp
     typechecker/check_expression.cpp
     typechecker/check_statement.cpp
@@ -71,6 +74,9 @@ add_library(nog_lib
     codegen/emit_statement.cpp
     codegen/emit_function.cpp
     codegen/emit_struct.cpp
+    codegen/emit_error.cpp
+    codegen/emit_fail.cpp
+    codegen/emit_or.cpp
     codegen/emit_ffi.cpp
     codegen/emit_if.cpp
     codegen/emit_while.cpp
@@ -109,6 +115,9 @@ add_custom_target(nog_runtime_headers ALL
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/std/std.hpp
         ${CMAKE_BINARY_DIR}/include/nog/std.hpp
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_SOURCE_DIR}/runtime/std/error.hpp
+        ${CMAKE_BINARY_DIR}/include/nog/error.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/http/http.hpp
         ${CMAKE_BINARY_DIR}/include/nog/http.hpp

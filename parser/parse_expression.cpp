@@ -13,10 +13,11 @@ using namespace std;
 namespace parser {
 
 /**
- * Entry point for expression parsing. Delegates to comparison (lowest precedence).
+ * Entry point for expression parsing.
+ * Precedence (lowest to highest): or -> default -> comparison -> additive -> primary
  */
 unique_ptr<ASTNode> parse_expression(ParserState& state) {
-    return parse_comparison(state);
+    return parse_or(state);
 }
 
 } // namespace parser

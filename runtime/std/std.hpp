@@ -28,6 +28,9 @@
 // Fiber-Asio integration for unified go routine model
 #include <nog/fiber_asio/round_robin.hpp>
 
+// Error handling primitives
+#include <nog/error.hpp>
+
 namespace nog::rt {
 
 /**

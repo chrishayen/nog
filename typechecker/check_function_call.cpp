@@ -63,8 +63,9 @@ TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call) 
             }
         }
 
-        return func->return_type.empty() ? TypeInfo{"void", false, true}
-                                         : TypeInfo{func->return_type, false, false};
+        bool fallible = !func->error_type.empty();
+        return func->return_type.empty() ? TypeInfo{"void", false, true, fallible}
+                                         : TypeInfo{func->return_type, false, false, fallible};
     }
 
     if (const TypeInfo* local = lookup_local(state, call.name)) {
@@ -99,8 +100,9 @@ TypeInfo check_function_call(TypeCheckerState& state, const FunctionCall& call) 
             }
         }
 
-        return func->return_type.empty() ? TypeInfo{"void", false, true}
-                                         : TypeInfo{func->return_type, false, false};
+        bool fallible = !func->error_type.empty();
+        return func->return_type.empty() ? TypeInfo{"void", false, true, fallible}
+                                         : TypeInfo{func->return_type, false, false, fallible};
     }
 
     if (state.extern_functions.find(call.name) != state.extern_functions.end()) {

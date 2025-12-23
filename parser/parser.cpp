@@ -138,6 +138,13 @@ unique_ptr<Program> parse(ParserState& state) {
             continue;
         }
 
+        if (check(state, TokenType::ERR)) {
+            auto e = parse_error_def(state, name, vis);
+            e->doc_comment = doc;
+            program->errors.push_back(move(e));
+            continue;
+        }
+
         if (check(state, TokenType::IDENT)) {
             auto m = parse_method_def(state, name, vis);
             m->doc_comment = doc;

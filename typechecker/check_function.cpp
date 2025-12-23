@@ -13,12 +13,17 @@ using namespace std;
 namespace typechecker {
 
 /**
- * Checks if a list of statements contains a return statement.
+ * Checks if a list of statements contains a return or fail statement.
  * Recursively checks if/else branches for guaranteed returns.
  */
 bool has_return(const vector<unique_ptr<ASTNode>>& stmts) {
     for (const auto& stmt : stmts) {
         if (dynamic_cast<const ReturnStmt*>(stmt.get())) {
+            return true;
+        }
+
+        // fail is a valid return path for fallible functions
+        if (dynamic_cast<const FailStmt*>(stmt.get())) {
             return true;
         }
 
@@ -42,6 +47,7 @@ void check_method(TypeCheckerState& state, const MethodDef& method) {
     state.local_scopes.clear();
     push_scope(state);  // method scope (parameters + body)
     state.current_struct = method.struct_name;
+    state.current_function_is_fallible = !method.error_type.empty();
 
     if (method.return_type.empty()) {
         state.current_return = {"void", false, true};
@@ -80,6 +86,7 @@ void check_function(TypeCheckerState& state, const FunctionDef& func) {
     state.local_scopes.clear();
     push_scope(state);  // function scope (parameters + body)
     state.current_struct.clear();
+    state.current_function_is_fallible = !func.error_type.empty();
 
     if (func.return_type.empty()) {
         state.current_return = {"void", false, true};

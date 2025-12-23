@@ -230,6 +230,53 @@ struct ReturnStmt : ASTNode {
     unique_ptr<ASTNode> value;     ///< Return value (may be null for void)
 };
 
+/** @brief Fail statement: fail "msg" or fail ErrorType { ... } */
+struct FailStmt : ASTNode {
+    unique_ptr<ASTNode> value;     ///< Error message (string) or error literal
+};
+
+//------------------------------------------------------------------------------
+// Error Handling - Or and Default expressions
+//------------------------------------------------------------------------------
+
+/** @brief Match arm for or-match expressions */
+struct MatchArm {
+    string error_type;             ///< Error type to match (or "_" for default)
+    unique_ptr<ASTNode> body;      ///< Expression or block to execute
+};
+
+/** @brief Or-return handler: or return [value] */
+struct OrReturn : ASTNode {
+    unique_ptr<ASTNode> value;     ///< Optional return value
+};
+
+/** @brief Or-fail handler: or fail error_expr */
+struct OrFail : ASTNode {
+    unique_ptr<ASTNode> error_expr; ///< Error to propagate (often just 'err')
+};
+
+/** @brief Or-block handler: or { statements } */
+struct OrBlock : ASTNode {
+    vector<unique_ptr<ASTNode>> body; ///< Statements to execute on error
+};
+
+/** @brief Or-match handler: or match err { arms } */
+struct OrMatch : ASTNode {
+    vector<MatchArm> arms;         ///< Match arms for different error types
+};
+
+/** @brief Default expression: expr default fallback */
+struct DefaultExpr : ASTNode {
+    unique_ptr<ASTNode> expr;      ///< Primary expression
+    unique_ptr<ASTNode> fallback;  ///< Fallback value if expr is falsy
+};
+
+/** @brief Or expression: expr or handler */
+struct OrExpr : ASTNode {
+    unique_ptr<ASTNode> expr;      ///< Expression that may fail
+    unique_ptr<ASTNode> handler;   ///< One of: OrReturn, OrFail, OrBlock, OrMatch
+};
+
 /** @brief If statement with optional else: if cond { } else { } */
 struct IfStmt : ASTNode {
     unique_ptr<ASTNode> condition;           ///< Condition expression
@@ -274,6 +321,7 @@ struct FunctionDef : ASTNode {
     string name;                          ///< Function name
     vector<FunctionParam> params;         ///< Parameter list
     string return_type;                   ///< Return type (empty for void)
+    string error_type;                    ///< Error type if fallible ("err" or specific type, empty if not fallible)
     vector<unique_ptr<ASTNode>> body;     ///< Function body statements
     Visibility visibility = Visibility::Public;  ///< Access modifier
     string doc_comment;                   ///< Documentation comment (from ///)
@@ -295,6 +343,7 @@ struct MethodDef : ASTNode {
     string name;                          ///< Method name
     vector<FunctionParam> params;         ///< Includes self as first param
     string return_type;                   ///< Return type (empty for void)
+    string error_type;                    ///< Error type if fallible ("err" or specific type, empty if not fallible)
     vector<unique_ptr<ASTNode>> body;     ///< Method body statements
     Visibility visibility = Visibility::Public;  ///< Access modifier
     string doc_comment;                   ///< Documentation comment (from ///)
@@ -315,6 +364,14 @@ struct StructField {
 struct StructDef : ASTNode {
     string name;                  ///< Struct name
     vector<StructField> fields;   ///< List of fields
+    Visibility visibility = Visibility::Public;  ///< Access modifier
+    string doc_comment;           ///< Documentation comment (from ///)
+};
+
+/** @brief Error type definition: Name :: err or Name :: err { fields } */
+struct ErrorDef : ASTNode {
+    string name;                  ///< Error type name
+    vector<StructField> fields;   ///< Error fields (reuses StructField)
     Visibility visibility = Visibility::Public;  ///< Access modifier
     string doc_comment;           ///< Documentation comment (from ///)
 };
@@ -340,6 +397,7 @@ struct FieldAccess : ASTNode {
 struct Program : ASTNode {
     vector<unique_ptr<ImportStmt>> imports;           ///< All import statements
     vector<unique_ptr<StructDef>> structs;            ///< All struct definitions
+    vector<unique_ptr<ErrorDef>> errors;              ///< All error type definitions
     vector<unique_ptr<FunctionDef>> functions;        ///< All function definitions
     vector<unique_ptr<MethodDef>> methods;            ///< All method definitions
     vector<unique_ptr<ExternFunctionDef>> externs;    ///< All extern function declarations

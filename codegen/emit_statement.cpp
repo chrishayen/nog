@@ -151,6 +151,10 @@ string generate_statement(CodeGenState& state, const ASTNode& node) {
         return emit(state, node) + ";";
     }
 
+    if (auto* fail = dynamic_cast<const FailStmt*>(&node)) {
+        return emit_fail(state, *fail) + ";";
+    }
+
     return emit(state, node);
 }
 

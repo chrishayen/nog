@@ -159,6 +159,10 @@ string generate(CodeGenState& state, const unique_ptr<Program>& program, bool te
         out += generate_struct(state, *s) + "\n\n";
     }
 
+    for (const auto& e : program->errors) {
+        out += generate_error(state, *e) + "\n";
+    }
+
     for (const auto& fn : program->functions) {
         out += generate_function(state, *fn);
     }
@@ -216,6 +220,10 @@ string generate_with_imports(
 
     for (const auto& s : program->structs) {
         out += generate_struct(state, *s) + "\n\n";
+    }
+
+    for (const auto& e : program->errors) {
+        out += generate_error(state, *e) + "\n";
     }
 
     for (const auto& fn : program->functions) {

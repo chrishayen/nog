@@ -64,10 +64,35 @@ unique_ptr<FunctionDef> parse_function(ParserState& state, Visibility vis) {
 
     consume(state, TokenType::RPAREN);
 
-    // Parse return type: -> int
+    // Parse return type: -> int or -> int or err or just "or err" for void fallible
     if (check(state, TokenType::ARROW)) {
         advance(state);
         func->return_type = parse_type(state);
+
+        // Check for fallible return type: -> T or err
+        if (check(state, TokenType::OR)) {
+            advance(state);
+
+            if (check(state, TokenType::ERR)) {
+                func->error_type = "err";
+                advance(state);
+            } else if (check(state, TokenType::IDENT)) {
+                // Specific error type: -> T or IOError
+                func->error_type = current(state).value;
+                advance(state);
+            }
+        }
+    } else if (check(state, TokenType::OR)) {
+        // Void fallible function: fn foo() or err { }
+        advance(state);
+
+        if (check(state, TokenType::ERR)) {
+            func->error_type = "err";
+            advance(state);
+        } else if (check(state, TokenType::IDENT)) {
+            func->error_type = current(state).value;
+            advance(state);
+        }
     }
 
     consume(state, TokenType::LBRACE);

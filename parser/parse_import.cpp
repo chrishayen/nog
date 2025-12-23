@@ -51,7 +51,7 @@ void prescan_definitions(ParserState& state) {
             }
         }
 
-        // Struct: Name :: struct
+        // Struct: Name :: struct or Error: Name :: err
         if (check(state, TokenType::IDENT)) {
             string name = current(state).value;
             advance(state);
@@ -59,7 +59,8 @@ void prescan_definitions(ParserState& state) {
             if (check(state, TokenType::DOUBLE_COLON)) {
                 advance(state);
 
-                if (check(state, TokenType::STRUCT)) {
+                // Both structs and errors can be instantiated with { field: value }
+                if (check(state, TokenType::STRUCT) || check(state, TokenType::ERR)) {
                     state.struct_names.push_back(name);
                 }
             }

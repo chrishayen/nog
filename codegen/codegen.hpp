@@ -21,6 +21,7 @@
  */
 struct CodeGenState {
     bool test_mode = false;
+    bool in_fallible_function = false;  // true if current function returns Result<T>
     const Program* current_program = nullptr;
     std::map<std::string, const Module*> imported_modules;
     std::map<std::string, const ExternFunctionDef*> extern_functions;
@@ -120,6 +121,25 @@ std::string struct_def_with_methods(const std::string& name, const std::vector<s
 std::string struct_literal(const std::string& name, const std::vector<std::pair<std::string, std::string>>& field_values);
 std::string field_access(const std::string& object, const std::string& field);
 std::string field_assignment(const std::string& object, const std::string& field, const std::string& value);
+
+// Error emission (emit_error.cpp)
+std::string generate_error(CodeGenState& state, const ErrorDef& def);
+std::string error_literal(const std::string& name, const std::string& message, const std::vector<std::pair<std::string, std::string>>& field_values);
+
+// Fail statement (emit_fail.cpp)
+std::string emit_fail(CodeGenState& state, const FailStmt& stmt);
+
+// Or expression (emit_or.cpp)
+struct OrEmitResult {
+    std::string preamble;   // temp var assignment
+    std::string check;      // error check with handler
+    std::string value_expr; // expression to get the value
+    std::string temp_var;   // temp variable name for decltype
+    bool is_match = false;  // true if match - var is assigned in check
+};
+OrEmitResult emit_or_for_decl(CodeGenState& state, const OrExpr& expr, const std::string& var_name = "");
+std::string emit_or_expr(CodeGenState& state, const OrExpr& expr);
+std::string emit_default_expr(CodeGenState& state, const DefaultExpr& expr);
 
 } // namespace codegen
 

@@ -63,12 +63,34 @@ string method_def(const string& name,
 }
 
 /**
+ * Returns the C++ return type for a function, accounting for fallibility.
+ * Fallible functions return nog::rt::Result<T>.
+ */
+static string get_cpp_return_type(const string& return_type, const string& error_type) {
+    if (error_type.empty()) {
+        return return_type.empty() ? "void" : map_type(return_type);
+    }
+
+    // Fallible function - return Result<T>
+    if (return_type.empty()) {
+        return "nog::rt::Result<void>";
+    }
+
+    return "nog::rt::Result<" + map_type(return_type) + ">";
+}
+
+/**
  * Generates a C++ function from a Nog FunctionDef.
  * Maps Nog types to C++ types and handles main() specially.
  * Main is wrapped in a fiber for goroutine support.
  */
 string generate_function(CodeGenState& state, const FunctionDef& fn) {
     bool is_main = (fn.name == "main" && !state.test_mode);
+    bool is_fallible = !fn.error_type.empty();
+
+    // Track fallibility for or-return handling
+    bool prev_fallible = state.in_fallible_function;
+    state.in_fallible_function = is_fallible;
 
     vector<FunctionParam> params;
 
@@ -81,6 +103,18 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
     for (const auto& stmt : fn.body) {
         body.push_back(generate_statement(state, *stmt));
     }
+
+    // Add implicit return {} for Result<void> functions without explicit return
+    if (is_fallible && fn.return_type.empty() && !body.empty()) {
+        // Check if last statement is a return
+        string last = body.back();
+
+        if (last.find("return") == string::npos) {
+            body.push_back("return {};");
+        }
+    }
+
+    state.in_fallible_function = prev_fallible;
 
     string out;
 
@@ -104,7 +138,22 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
         out += "\treturn 0;\n";
         out += "}\n";
     } else {
-        out = function_def(fn.name, params, fn.return_type, body);
+        // Use raw return type string for fallible functions
+        string cpp_rt = get_cpp_return_type(fn.return_type, fn.error_type);
+
+        vector<string> param_strs;
+
+        for (const auto& p : params) {
+            param_strs.push_back(fmt::format("{} {}", map_type(p.type), p.name));
+        }
+
+        out = fmt::format("{} {}({}) {{\n", cpp_rt, fn.name, fmt::join(param_strs, ", "));
+
+        for (const auto& stmt : body) {
+            out += fmt::format("\t{}\n", stmt);
+        }
+
+        out += "}\n";
     }
 
     return out;
@@ -161,11 +210,15 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
         out += generate_struct(state, *s) + "\n\n";
     }
 
-    vector<string> test_funcs;
+    for (const auto& e : program->errors) {
+        out += generate_error(state, *e) + "\n";
+    }
+
+    vector<pair<string, bool>> test_funcs;  // name, is_fallible
 
     for (const auto& fn : program->functions) {
         if (fn->name.rfind("test_", 0) == 0) {
-            test_funcs.push_back(fn->name);
+            test_funcs.push_back({fn->name, !fn->error_type.empty()});
         }
 
         out += generate_function(state, *fn);
@@ -179,8 +232,19 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
     out += "\n";
 
     // Run each test in a fiber, join to wait for completion
-    for (const auto& name : test_funcs) {
-        out += "\tboost::fibers::fiber(" + name + ").join();\n";
+    for (const auto& [name, is_fallible] : test_funcs) {
+        if (is_fallible) {
+            // Fallible test: check for errors
+            out += "\tboost::fibers::fiber([]() {\n";
+            out += "\t\tauto result = " + name + "();\n";
+            out += "\t\tif (result.is_error()) {\n";
+            out += "\t\t\tstd::cerr << \"" + name + ": FAIL: \" << result.error()->message << std::endl;\n";
+            out += "\t\t\t_failures++;\n";
+            out += "\t\t}\n";
+            out += "\t}).join();\n";
+        } else {
+            out += "\tboost::fibers::fiber(" + name + ").join();\n";
+        }
     }
 
     out += "\treturn _failures;\n";

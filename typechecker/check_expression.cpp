@@ -103,6 +103,25 @@ TypeInfo infer_type(TypeCheckerState& state, const ASTNode& expr) {
         return check_struct_literal(state, *lit);
     }
 
+    if (auto* or_expr = dynamic_cast<const OrExpr*>(&expr)) {
+        TypeInfo expr_type = infer_type(state, *or_expr->expr);
+
+        if (!expr_type.is_fallible) {
+            error(state, "or handler requires a fallible expression", or_expr->line);
+        }
+
+        // Check if or fail err is used in a non-fallible function
+        if (auto* or_fail = dynamic_cast<const OrFail*>(or_expr->handler.get())) {
+            if (!state.current_function_is_fallible) {
+                error(state, "or fail err can only be used in fallible functions", or_fail->line);
+            }
+        }
+
+        // The result type is the unwrapped (non-fallible) type
+        expr_type.is_fallible = false;
+        return expr_type;
+    }
+
     return {"unknown", false, false};
 }
 

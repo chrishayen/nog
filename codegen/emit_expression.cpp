@@ -93,7 +93,37 @@ string emit(CodeGenState& state, const ASTNode& node) {
     }
 
     if (auto* decl = dynamic_cast<const VariableDecl*>(&node)) {
+        // Special handling for OrExpr - needs to generate multiple statements
+        if (auto* or_expr = dynamic_cast<const OrExpr*>(decl->value.get())) {
+            auto result = emit_or_for_decl(state, *or_expr, decl->name);
+
+            if (result.is_match) {
+                // For match, we declare variable first, then assign in branches
+                // Use decltype with remove_reference to get the value type from the Result
+                string cpp_type = decl->type.empty()
+                    ? "std::remove_reference_t<decltype(" + result.temp_var + ".value())>"
+                    : map_type(decl->type);
+                string out = result.preamble + "\n\t";
+                out += cpp_type + " " + decl->name + ";\n\t";
+                out += result.check;
+                return out;
+            }
+
+            string out = result.preamble + "\n\t";
+            out += result.check + "\n\t";
+            out += variable_decl(decl->type, decl->name, result.value_expr, decl->is_optional);
+            return out;
+        }
+
         return variable_decl(decl->type, decl->name, emit(state, *decl->value), decl->is_optional);
+    }
+
+    if (auto* def_expr = dynamic_cast<const DefaultExpr*>(&node)) {
+        return emit_default_expr(state, *def_expr);
+    }
+
+    if (auto* or_expr = dynamic_cast<const OrExpr*>(&node)) {
+        return emit_or_expr(state, *or_expr);
     }
 
     if (auto* assign = dynamic_cast<const Assignment*>(&node)) {
@@ -101,7 +131,12 @@ string emit(CodeGenState& state, const ASTNode& node) {
     }
 
     if (auto* ret = dynamic_cast<const ReturnStmt*>(&node)) {
-        return "return " + emit(state, *ret->value) + ";";
+        if (ret->value) {
+            return "return " + emit(state, *ret->value) + ";";
+        }
+
+        // Void return - use {} for Result<void>, plain return for void
+        return state.in_fallible_function ? "return {};" : "return;";
     }
 
     if (auto* lit = dynamic_cast<const StructLiteral*>(&node)) {

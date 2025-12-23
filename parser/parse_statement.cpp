@@ -26,6 +26,11 @@ unique_ptr<ASTNode> parse_statement(ParserState& state) {
         return parse_return(state);
     }
 
+    // fail statement
+    if (check(state, TokenType::FAIL)) {
+        return parse_fail(state);
+    }
+
     // if statement
     if (check(state, TokenType::IF)) {
         return parse_if(state);

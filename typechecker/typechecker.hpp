@@ -30,10 +30,11 @@ struct TypeInfo {
     std::string base_type;
     bool is_optional = false;
     bool is_void = false;
+    bool is_fallible = false;
 
     bool operator==(const TypeInfo& other) const {
         return base_type == other.base_type && is_optional == other.is_optional &&
-               is_void == other.is_void;
+               is_void == other.is_void && is_fallible == other.is_fallible;
     }
 
     bool operator!=(const TypeInfo& other) const {
@@ -67,6 +68,7 @@ struct TypeCheckerState {
     // Current context
     std::string current_struct;
     TypeInfo current_return;
+    bool current_function_is_fallible = false;
     std::string filename;
 
     std::vector<TypeError> errors;
@@ -111,6 +113,7 @@ void check_variable_decl_stmt(TypeCheckerState& state, const VariableDecl& decl)
 void check_assignment_stmt(TypeCheckerState& state, const Assignment& assign);
 void check_field_assignment_stmt(TypeCheckerState& state, const FieldAssignment& fa);
 void check_return_stmt(TypeCheckerState& state, const ReturnStmt& ret);
+void check_fail_stmt(TypeCheckerState& state, const FailStmt& fail);
 void check_if_stmt(TypeCheckerState& state, const IfStmt& if_stmt);
 void check_while_stmt(TypeCheckerState& state, const WhileStmt& while_stmt);
 void check_for_stmt(TypeCheckerState& state, const ForStmt& for_stmt);

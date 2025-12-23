@@ -171,6 +171,11 @@ enum class TokenType {
     SELECT,
     CASE,
     EXTERN,
+    ERR,
+    FAIL,
+    OR,
+    DEFAULT,
+    MATCH,
 
     // Annotations
     AT,
