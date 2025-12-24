@@ -26,6 +26,7 @@ install: build
 	@mkdir -p ~/.local/bin
 	@mkdir -p ~/.local/lib/nog
 	@mkdir -p ~/.local/include/nog
+	@mkdir -p ~/.local/include/nog/fiber_asio
 	@cp $(BUILD_DIR)/nog ~/.local/bin/
 	@cp $(BUILD_DIR)/lib/libnog_http_runtime.a ~/.local/lib/nog/
 	@cp $(BUILD_DIR)/lib/libllhttp.a ~/.local/lib/nog/
@@ -34,6 +35,7 @@ install: build
 	@cp $(BUILD_DIR)/include/nog/http.hpp ~/.local/include/nog/
 	@cp $(BUILD_DIR)/include/nog/http.hpp.gch ~/.local/include/nog/
 	@cp $(BUILD_DIR)/include/nog/fs.hpp ~/.local/include/nog/
+	@cp $(BUILD_DIR)/include/nog/fiber_asio/*.hpp ~/.local/include/nog/fiber_asio/
 	@cp $(BUILD_DIR)/include/llhttp.h ~/.local/include/
 	@echo "Installed nog to ~/.local/bin/"
 	@echo "Installed runtime libraries to ~/.local/lib/nog/"

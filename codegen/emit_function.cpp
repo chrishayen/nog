@@ -130,11 +130,8 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
         out += "\tboost::fibers::use_scheduling_algorithm<\n";
         out += "\t\tboost::fibers::asio::round_robin>(nog::rt::io_ctx);\n";
         out += "\n";
-        out += "\t// Run main as a fiber\n";
-        out += "\tboost::fibers::fiber(_nog_main).detach();\n";
-        out += "\n";
-        out += "\t// Drive fiber scheduler and async I/O\n";
-        out += "\tnog::rt::io_ctx->run();\n";
+        out += "\t// Run main as a fiber and wait for completion\n";
+        out += "\tboost::fibers::fiber(_nog_main).join();\n";
         out += "\treturn 0;\n";
         out += "}\n";
     } else {

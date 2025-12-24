@@ -11,7 +11,7 @@ namespace typechecker {
 
 /**
  * Type checks a variable declaration statement.
- * Handles struct pointer syntax: Person p = &bob creates a Person* variable.
+ * Pointers cannot be stored in variables - only passed by reference to functions.
  */
 void check_variable_decl_stmt(TypeCheckerState& state, const VariableDecl& decl) {
     if (!decl.type.empty() && !is_valid_type(state, decl.type)) {
@@ -19,22 +19,15 @@ void check_variable_decl_stmt(TypeCheckerState& state, const VariableDecl& decl)
     }
 
     if (decl.value) {
+        // Disallow storing pointers in variables - only pass-by-reference to functions
+        if (dynamic_cast<const AddressOf*>(decl.value.get())) {
+            error(state, "cannot store pointer in variable; use pass-by-reference to functions instead", decl.line);
+            return;
+        }
+
         TypeInfo init_type = infer_type(state, *decl.value);
 
         if (!decl.type.empty()) {
-            // Allow "Person p = &bob" syntax: declared as Person, assigned Person*
-            // The variable becomes a pointer type
-            bool is_pointer_assignment = !init_type.base_type.empty() &&
-                                         init_type.base_type.back() == '*' &&
-                                         init_type.base_type == decl.type + "*";
-
-            if (is_pointer_assignment) {
-                // Variable is a pointer - update type for codegen and use the pointer type
-                decl.type = init_type.base_type;
-                declare_local(state, decl.name, init_type, decl.line);
-                return;
-            }
-
             TypeInfo expected = {decl.type, decl.is_optional, false};
 
             if (!types_compatible(expected, init_type)) {

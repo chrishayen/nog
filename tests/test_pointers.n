@@ -12,59 +12,62 @@ Person :: greet(self, str greeting) -> str {
     return greeting;
 }
 
-fn test_pointer_creation() {
+fn read_name(Person *p) -> str {
+    return p.name;
+}
+
+fn read_age(Person *p) -> int {
+    return p.age;
+}
+
+fn set_age_to(Person *p, int new_age) {
+    p.age = new_age;
+}
+
+fn call_method(Person *p) -> str {
+    return p.get_name();
+}
+
+fn call_method_with_param(Person *p, str greeting) -> str {
+    return p.greet(greeting);
+}
+
+fn call_mutating_method(Person *p, int new_age) {
+    p.set_age(new_age);
+}
+
+fn test_pass_by_reference_read_field() {
     bob := Person { name: "Bob", age: 30 };
-    Person p = &bob;
-    assert_eq(p.name, "Bob");
-    assert_eq(p.age, 30);
+    assert_eq(read_name(&bob), "Bob");
+    assert_eq(read_age(&bob), 30);
 }
 
-fn test_pointer_field_access() {
-    alice := Person { name: "Alice", age: 25 };
-    Person ptr = &alice;
-    assert_eq(ptr.name, "Alice");
-    assert_eq(ptr.age, 25);
+fn test_pass_by_reference_modify_field() {
+    person := Person { name: "Alice", age: 25 };
+    set_age_to(&person, 26);
+    assert_eq(person.age, 26);
 }
 
-fn test_pointer_method_call() {
+fn test_pass_by_reference_method_call() {
     chris := Person { name: "Chris", age: 32 };
-    Person p = &chris;
-    assert_eq(p.get_name(), "Chris");
+    assert_eq(call_method(&chris), "Chris");
 }
 
-fn test_pointer_method_with_param() {
-    person := Person { name: "Dave", age: 40 };
-    Person p = &person;
-    assert_eq(p.greet("Hello"), "Hello");
+fn test_pass_by_reference_method_with_param() {
+    dave := Person { name: "Dave", age: 40 };
+    assert_eq(call_method_with_param(&dave, "Hello"), "Hello");
 }
 
-fn test_pointer_field_assignment() {
-    person := Person { name: "Eve", age: 20 };
-    Person p = &person;
-    p.age = 21;
-    assert_eq(person.age, 21);
-    assert_eq(p.age, 21);
+fn test_pass_by_reference_mutating_method() {
+    frank := Person { name: "Frank", age: 35 };
+    call_mutating_method(&frank, 36);
+    assert_eq(frank.age, 36);
 }
 
-fn test_pointer_mutation_via_method() {
-    person := Person { name: "Frank", age: 35 };
-    Person p = &person;
-    p.set_age(36);
-    assert_eq(person.age, 36);
-}
-
-fn test_pointer_inferred_type() {
+fn test_multiple_mutations() {
     person := Person { name: "Grace", age: 28 };
-    p := &person;
-    assert_eq(p.name, "Grace");
-    assert_eq(p.get_name(), "Grace");
-}
-
-fn test_multiple_pointers_same_struct() {
-    person := Person { name: "Heidi", age: 22 };
-    Person p1 = &person;
-    Person p2 = &person;
-    p1.age = 23;
-    assert_eq(p2.age, 23);
-    assert_eq(person.age, 23);
+    set_age_to(&person, 29);
+    assert_eq(person.age, 29);
+    set_age_to(&person, 30);
+    assert_eq(person.age, 30);
 }
