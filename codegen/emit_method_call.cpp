@@ -1,6 +1,6 @@
 /**
  * @file emit_method_call.cpp
- * @brief Method call emission for the Nog code generator.
+ * @brief Method call emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"
@@ -42,7 +42,7 @@ string emit_method_call(CodeGenState& state, const MethodCall& call) {
         }
     }
 
-    // Handle channel methods - direct calls on nog::rt::Channel
+    // Handle channel methods - direct calls on bishop::rt::Channel
     if (call.method_name == "send") {
         string val = args.empty() ? "" : args[0];
         return emit(state, *call.object) + ".send(" + val + ")";

@@ -1,6 +1,6 @@
 /**
  * @file codegen.cpp
- * @brief Main C++ code generation entry points for the Nog language.
+ * @brief Main C++ code generation entry points for the Bishop language.
  *
  * Contains the generate() and generate_with_imports() functions that
  * orchestrate the code generation process.
@@ -163,10 +163,10 @@ string generate(CodeGenState& state, const unique_ptr<Program>& program, bool te
         return generate_test_harness(state, program);
     }
 
-    string out = "#include <nog/std.hpp>\n";
+    string out = "#include <bishop/std.hpp>\n";
 
     if (uses_channels(*program)) {
-        out += "#include <nog/channel.hpp>\n";
+        out += "#include <bishop/channel.hpp>\n";
     }
 
     out += "\n";
@@ -208,17 +208,17 @@ string generate_with_imports(
     string out;
 
     if (has_http_import(imports)) {
-        out += "#include <nog/http.hpp>\n";
+        out += "#include <bishop/http.hpp>\n";
     } else {
-        out += "#include <nog/std.hpp>\n";
+        out += "#include <bishop/std.hpp>\n";
     }
 
     if (has_fs_import(imports)) {
-        out += "#include <nog/fs.hpp>\n";
+        out += "#include <bishop/fs.hpp>\n";
     }
 
     if (uses_channels(*program)) {
-        out += "#include <nog/channel.hpp>\n";
+        out += "#include <bishop/channel.hpp>\n";
     }
 
     out += "\n";
@@ -262,11 +262,11 @@ string generate_with_imports(
         }
 
         out += "\nint main() {\n";
-        out += "\tnog::rt::init_runtime();\n";
+        out += "\tbishop::rt::init_runtime();\n";
         out += "\n";
 
         for (const auto& name : test_funcs) {
-            out += "\tnog::rt::run_in_fiber(" + name + ");\n";
+            out += "\tbishop::rt::run_in_fiber(" + name + ");\n";
         }
 
         out += "\treturn _failures;\n";

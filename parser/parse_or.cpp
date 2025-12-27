@@ -1,6 +1,6 @@
 /**
  * @file parse_or.cpp
- * @brief Or expression parsing for the Nog parser.
+ * @brief Or expression parsing for the Bishop parser.
  *
  * Handles parsing of error handling expressions:
  * - expr or return

@@ -1,6 +1,6 @@
 /**
  * @file http.hpp
- * @brief Built-in HTTP module for Nog.
+ * @brief Built-in HTTP module for Bishop.
  *
  * Provides HTTP server functionality using ASIO for networking
  * and llhttp for HTTP parsing. Defines Request/Response types

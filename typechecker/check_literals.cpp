@@ -1,6 +1,6 @@
 /**
  * @file check_literals.cpp
- * @brief Literal type inference for the Nog type checker.
+ * @brief Literal type inference for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

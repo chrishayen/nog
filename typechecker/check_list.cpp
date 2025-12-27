@@ -1,6 +1,6 @@
 /**
  * @file check_list.cpp
- * @brief List type inference for the Nog type checker.
+ * @brief List type inference for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

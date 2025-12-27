@@ -1,14 +1,14 @@
 /**
  * @file fs.hpp
- * @brief Nog filesystem runtime library.
+ * @brief Bishop filesystem runtime library.
  *
- * Provides filesystem operations for Nog programs.
+ * Provides filesystem operations for Bishop programs.
  * This header is included when programs import the fs module.
  */
 
 #pragma once
 
-#include <nog/std.hpp>
+#include <bishop/std.hpp>
 #include <fstream>
 #include <sstream>
 #include <filesystem>

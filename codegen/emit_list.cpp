@@ -1,6 +1,6 @@
 /**
  * @file emit_list.cpp
- * @brief List emission for the Nog code generator.
+ * @brief List emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

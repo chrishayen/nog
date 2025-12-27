@@ -3,7 +3,7 @@
 import fs;
 
 fn test_read_file() {
-    content := fs.read_file("tests/test_fs.n");
+    content := fs.read_file("tests/test_fs.b");
     assert_eq(true, content.length() > 0);
 }
 
@@ -13,7 +13,7 @@ fn test_read_file_nonexistent() {
 }
 
 fn test_exists_file() {
-    assert_eq(true, fs.exists("tests/test_fs.n"));
+    assert_eq(true, fs.exists("tests/test_fs.b"));
 }
 
 fn test_exists_dir() {
@@ -29,7 +29,7 @@ fn test_is_dir_true() {
 }
 
 fn test_is_dir_false() {
-    assert_eq(false, fs.is_dir("tests/test_fs.n"));
+    assert_eq(false, fs.is_dir("tests/test_fs.b"));
 }
 
 fn test_read_dir() {

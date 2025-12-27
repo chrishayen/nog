@@ -1,6 +1,6 @@
 /**
  * @file emit_select.cpp
- * @brief Select statement emission for the Nog code generator.
+ * @brief Select statement emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

@@ -1,6 +1,6 @@
 /**
  * @file check_return_stmt.cpp
- * @brief Return statement checking for the Nog type checker.
+ * @brief Return statement checking for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

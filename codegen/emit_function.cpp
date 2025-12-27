@@ -1,6 +1,6 @@
 /**
  * @file emit_function.cpp
- * @brief Function and method emission for the Nog code generator.
+ * @brief Function and method emission for the Bishop code generator.
  *
  * Handles emitting C++ code for function definitions, method definitions,
  * and the test harness.
@@ -64,7 +64,7 @@ string method_def(const string& name,
 
 /**
  * Returns the C++ return type for a function, accounting for fallibility.
- * Fallible functions return nog::rt::Result<T>.
+ * Fallible functions return bishop::rt::Result<T>.
  */
 static string get_cpp_return_type(const string& return_type, const string& error_type) {
     if (error_type.empty()) {
@@ -73,15 +73,15 @@ static string get_cpp_return_type(const string& return_type, const string& error
 
     // Fallible function - return Result<T>
     if (return_type.empty()) {
-        return "nog::rt::Result<void>";
+        return "bishop::rt::Result<void>";
     }
 
-    return "nog::rt::Result<" + map_type(return_type) + ">";
+    return "bishop::rt::Result<" + map_type(return_type) + ">";
 }
 
 /**
  * Generates a C++ function from a Nog FunctionDef.
- * Maps Nog types to C++ types and handles main() specially.
+ * Maps Bishop types to C++ types and handles main() specially.
  * Main is wrapped in a fiber for goroutine support.
  */
 string generate_function(CodeGenState& state, const FunctionDef& fn) {
@@ -125,7 +125,7 @@ string generate_function(CodeGenState& state, const FunctionDef& fn) {
 
         // Generate int main() using runtime wrapper
         out += "\nint main() {\n";
-        out += "\tnog::rt::run(_nog_main);\n";
+        out += "\tbishop::rt::run(_nog_main);\n";
         out += "\treturn 0;\n";
         out += "}\n";
     } else {
@@ -198,10 +198,10 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
         state.extern_functions[ext->name] = ext.get();
     }
 
-    string out = "#include <nog/std.hpp>\n";
+    string out = "#include <bishop/std.hpp>\n";
 
     if (test_uses_channels(*program)) {
-        out += "#include <nog/channel.hpp>\n";
+        out += "#include <bishop/channel.hpp>\n";
     }
 
     out += "\n";
@@ -237,14 +237,14 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
     }
 
     out += "\nint main() {\n";
-    out += "\tnog::rt::init_runtime();\n";
+    out += "\tbishop::rt::init_runtime();\n";
     out += "\n";
 
     // Run each test in a fiber, join to wait for completion
     for (const auto& [name, is_fallible] : test_funcs) {
         if (is_fallible) {
             // Fallible test: check for errors
-            out += "\tnog::rt::run_in_fiber([]() {\n";
+            out += "\tbishop::rt::run_in_fiber([]() {\n";
             out += "\t\tauto result = " + name + "();\n";
             out += "\t\tif (result.is_error()) {\n";
             out += "\t\t\tstd::cerr << \"" + name + ": FAIL: \" << result.error()->message << std::endl;\n";
@@ -252,7 +252,7 @@ string generate_test_harness(CodeGenState& state, const unique_ptr<Program>& pro
             out += "\t\t}\n";
             out += "\t});\n";
         } else {
-            out += "\tnog::rt::run_in_fiber(" + name + ");\n";
+            out += "\tbishop::rt::run_in_fiber(" + name + ");\n";
         }
     }
 

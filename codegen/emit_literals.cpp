@@ -1,6 +1,6 @@
 /**
  * @file emit_literals.cpp
- * @brief Literal emission for the Nog code generator.
+ * @brief Literal emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

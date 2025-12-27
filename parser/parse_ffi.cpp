@@ -1,6 +1,6 @@
 /**
  * @file parse_ffi.cpp
- * @brief FFI (Foreign Function Interface) parsing for the Nog parser.
+ * @brief FFI (Foreign Function Interface) parsing for the Bishop parser.
  *
  * Handles parsing of @extern function declarations for calling C libraries.
  */
@@ -12,10 +12,10 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax @extern
+ * @bishop_syntax @extern
  * @category FFI
  * @order 1
- * @description Declare an external C function to call from Nog.
+ * @description Declare an external C function to call from Bishop.
  * @syntax @extern("lib") fn name(params) -> type;
  * @example
  * @extern("c") fn puts(cstr s) -> cint;

@@ -2,8 +2,8 @@
  * @file project.cpp
  * @brief Project configuration and module resolution implementation.
  *
- * Implements project discovery (finding nog.toml), configuration parsing,
- * and module path resolution for the Nog module system.
+ * Implements project discovery (finding bishop.toml), configuration parsing,
+ * and module path resolution for the Bishop module system.
  */
 
 #include "project.hpp"
@@ -16,7 +16,7 @@ using namespace std;
 /**
  * @brief Finds and loads project configuration.
  *
- * Walks up from the given path looking for nog.toml file.
+ * Walks up from the given path looking for bishop.toml file.
  * Returns nullopt if no project root is found.
  */
 optional<ProjectConfig> find_project(const fs::path& start_path) {
@@ -27,9 +27,9 @@ optional<ProjectConfig> find_project(const fs::path& start_path) {
         current = current.parent_path();
     }
 
-    // Walk up the directory tree looking for nog.toml
+    // Walk up the directory tree looking for bishop.toml
     while (!current.empty()) {
-        fs::path init_file = current / "nog.toml";
+        fs::path init_file = current / "bishop.toml";
 
         if (fs::exists(init_file)) {
             return parse_init_file(init_file);
@@ -48,7 +48,7 @@ optional<ProjectConfig> find_project(const fs::path& start_path) {
 }
 
 /**
- * @brief Parses a nog.toml file and returns the project configuration.
+ * @brief Parses a bishop.toml file and returns the project configuration.
  *
  * Expects TOML format:
  *   [project]
@@ -82,7 +82,7 @@ optional<ProjectConfig> parse_init_file(const fs::path& init_file) {
 }
 
 /**
- * @brief Resolves an import path to a directory of .n files.
+ * @brief Resolves an import path to a directory of .b files.
  *
  * Given "math", looks for <project_root>/math/ directory.
  * Given "utils.helpers", looks for <project_root>/utils/helpers/ directory.
@@ -103,7 +103,7 @@ optional<fs::path> resolve_module(const ProjectConfig& config, const string& imp
 }
 
 /**
- * @brief Gets all .n files in a module directory.
+ * @brief Gets all .b files in a module directory.
  */
 vector<fs::path> get_module_files(const fs::path& module_dir) {
     vector<fs::path> files;
@@ -113,7 +113,7 @@ vector<fs::path> get_module_files(const fs::path& module_dir) {
     }
 
     for (const auto& entry : fs::directory_iterator(module_dir)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".n") {
+        if (entry.is_regular_file() && entry.path().extension() == ".b") {
             files.push_back(entry.path());
         }
     }

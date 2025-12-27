@@ -1,6 +1,6 @@
 /**
  * @file emit_expression.cpp
- * @brief Expression dispatch for the Nog code generator.
+ * @brief Expression dispatch for the Bishop code generator.
  *
  * Main entry point for generating C++ code from expression AST nodes.
  * Individual expression types are implemented in separate files.

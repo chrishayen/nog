@@ -1,6 +1,6 @@
 /**
  * @file parse_type.cpp
- * @brief Type parsing utilities for the Nog parser.
+ * @brief Type parsing utilities for the Bishop parser.
  *
  * Handles type tokens, type conversion, and complex type parsing
  * including function types and qualified types.

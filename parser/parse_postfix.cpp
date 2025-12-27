@@ -1,6 +1,6 @@
 /**
  * @file parse_postfix.cpp
- * @brief Postfix expression parsing for the Nog parser.
+ * @brief Postfix expression parsing for the Bishop parser.
  */
 
 #include "parser.hpp"

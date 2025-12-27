@@ -1,6 +1,6 @@
 /**
  * @file emit_for.cpp
- * @brief For loop emission for the Nog code generator.
+ * @brief For loop emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

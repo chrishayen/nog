@@ -1,6 +1,6 @@
 /**
  * @file check_if_stmt.cpp
- * @brief If statement checking for the Nog type checker.
+ * @brief If statement checking for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

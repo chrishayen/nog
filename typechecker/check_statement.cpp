@@ -1,6 +1,6 @@
 /**
  * @file check_statement.cpp
- * @brief Statement type checking dispatch for the Nog type checker.
+ * @brief Statement type checking dispatch for the Bishop type checker.
  *
  * Dispatches to specialized check functions based on statement type.
  */

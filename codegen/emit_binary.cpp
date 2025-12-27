@@ -1,6 +1,6 @@
 /**
  * @file emit_binary.cpp
- * @brief Binary expression emission for the Nog code generator.
+ * @brief Binary expression emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

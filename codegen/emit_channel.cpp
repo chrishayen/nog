@@ -1,6 +1,6 @@
 /**
  * @file emit_channel.cpp
- * @brief Channel emission for the Nog code generator.
+ * @brief Channel emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"
@@ -11,11 +11,11 @@ using namespace std;
 namespace codegen {
 
 /**
- * Emits a channel creation using nog::rt::Channel.
+ * Emits a channel creation using bishop::rt::Channel.
  */
 string emit_channel_create(const ChannelCreate& channel) {
     string cpp_type = map_type(channel.element_type);
-    return "nog::rt::Channel<" + cpp_type + ">()";
+    return "bishop::rt::Channel<" + cpp_type + ">()";
 }
 
 } // namespace codegen

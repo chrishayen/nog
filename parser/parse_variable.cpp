@@ -1,6 +1,6 @@
 /**
  * @file parse_variable.cpp
- * @brief Variable declaration parsing for the Nog parser.
+ * @brief Variable declaration parsing for the Bishop parser.
  */
 
 #include "parser.hpp"
@@ -10,7 +10,7 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax Explicit Declaration
+ * @bishop_syntax Explicit Declaration
  * @category Variables
  * @order 1
  * @description Declare a variable with an explicit type.
@@ -40,7 +40,7 @@ unique_ptr<VariableDecl> parse_variable_decl(ParserState& state) {
 }
 
 /**
- * @nog_syntax Type Inference
+ * @bishop_syntax Type Inference
  * @category Variables
  * @order 2
  * @description Declare a variable with inferred type using :=.

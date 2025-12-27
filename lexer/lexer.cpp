@@ -1,6 +1,6 @@
 /**
  * @file lexer.cpp
- * @brief Lexer implementation for the Nog language.
+ * @brief Lexer implementation for the Bishop language.
  *
  * Implements the tokenization logic that converts raw source text into
  * a stream of tokens. Recognizes all Nog keywords, operators, and literals.

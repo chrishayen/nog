@@ -1,6 +1,6 @@
 /**
  * @file parse_return.cpp
- * @brief Return statement parsing for the Nog parser.
+ * @brief Return statement parsing for the Bishop parser.
  */
 
 #include "parser.hpp"

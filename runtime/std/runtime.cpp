@@ -1,6 +1,6 @@
 /**
  * @file runtime.cpp
- * @brief Nog fiber runtime implementation.
+ * @brief Bishop fiber runtime implementation.
  *
  * Contains the boost fiber/asio implementation, hidden from user code.
  * User code only sees declarations in std.hpp.
@@ -11,13 +11,13 @@
 #include <boost/asio.hpp>
 #include <boost/asio/spawn.hpp>
 
-#include <nog/fiber_asio/round_robin.hpp>
+#include <bishop/fiber_asio/round_robin.hpp>
 
 #include <functional>
 #include <memory>
 #include <chrono>
 
-namespace nog::rt {
+namespace bishop::rt {
 
 // Global io_context - initialized by run()
 static std::shared_ptr<boost::asio::io_context> g_io_ctx;
@@ -56,4 +56,4 @@ boost::asio::io_context& io_context() {
     return *g_io_ctx;
 }
 
-}  // namespace nog::rt
+}  // namespace bishop::rt

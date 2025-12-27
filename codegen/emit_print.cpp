@@ -1,6 +1,6 @@
 /**
  * @file emit_print.cpp
- * @brief Print statement emission for the Nog code generator.
+ * @brief Print statement emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

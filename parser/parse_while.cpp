@@ -1,6 +1,6 @@
 /**
  * @file parse_while.cpp
- * @brief While statement parsing for the Nog parser.
+ * @brief While statement parsing for the Bishop parser.
  */
 
 #include "parser.hpp"
@@ -10,7 +10,7 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax while
+ * @bishop_syntax while
  * @category Control Flow
  * @order 2
  * @description Loop while a condition is true.

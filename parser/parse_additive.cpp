@@ -1,6 +1,6 @@
 /**
  * @file parse_additive.cpp
- * @brief Additive/multiplicative expression parsing for the Nog parser.
+ * @brief Additive/multiplicative expression parsing for the Bishop parser.
  */
 
 #include "parser.hpp"

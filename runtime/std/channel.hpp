@@ -1,6 +1,6 @@
 /**
  * @file channel.hpp
- * @brief Channel implementation for Nog fiber communication.
+ * @brief Channel implementation for Bishop fiber communication.
  *
  * This header includes boost fiber headers. Only included when
  * the program uses Channel types.
@@ -11,7 +11,7 @@
 #include <boost/fiber/all.hpp>
 #include <utility>
 
-namespace nog::rt {
+namespace bishop::rt {
 
 /**
  * Typed channel for communication between fibers.
@@ -61,4 +61,4 @@ private:
     boost::fibers::buffered_channel<T> ch_;
 };
 
-}  // namespace nog::rt
+}  // namespace bishop::rt

@@ -1,6 +1,6 @@
 /**
  * @file emit_go_spawn.cpp
- * @brief Goroutine spawn emission for the Nog code generator.
+ * @brief Goroutine spawn emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"
@@ -11,7 +11,7 @@ using namespace std;
 namespace codegen {
 
 /**
- * Emits a goroutine spawn using nog::rt::spawn().
+ * Emits a goroutine spawn using bishop::rt::spawn().
  *
  * Note: Uses [&] capture. The caller must ensure captured variables
  * outlive the goroutine. Proper fix requires shared_ptr for channels.
@@ -19,7 +19,7 @@ namespace codegen {
 string emit_go_spawn(CodeGenState& state, const GoSpawn& spawn) {
     string call_code = emit(state, *spawn.call);
 
-    string out = "nog::rt::spawn([&]() {\n";
+    string out = "bishop::rt::spawn([&]() {\n";
     out += "\t\t" + call_code + ";\n";
     out += "\t})";
 

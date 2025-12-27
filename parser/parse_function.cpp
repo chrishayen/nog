@@ -1,6 +1,6 @@
 /**
  * @file parse_function.cpp
- * @brief Function and method parsing for the Nog parser.
+ * @brief Function and method parsing for the Bishop parser.
  *
  * Handles function definitions, method definitions, and visibility annotations.
  * For extern declarations, see parse_ffi.cpp.
@@ -30,7 +30,7 @@ Visibility parse_visibility(ParserState& state) {
 }
 
 /**
- * @nog_syntax Function Declaration
+ * @bishop_syntax Function Declaration
  * @category Functions
  * @order 1
  * @description Declare a function with parameters and return type.
@@ -110,7 +110,7 @@ unique_ptr<FunctionDef> parse_function(ParserState& state, Visibility vis) {
 }
 
 /**
- * @nog_syntax Method Definition
+ * @bishop_syntax Method Definition
  * @category Methods
  * @order 1
  * @description Define a method on a struct type.

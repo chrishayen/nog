@@ -1,6 +1,6 @@
 /**
  * @file check_while_stmt.cpp
- * @brief While statement checking for the Nog type checker.
+ * @brief While statement checking for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

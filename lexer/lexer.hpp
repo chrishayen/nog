@@ -1,6 +1,6 @@
 /**
  * @file lexer.hpp
- * @brief Lexical analyzer for the Nog language.
+ * @brief Lexical analyzer for the Bishop language.
  *
  * The Lexer converts raw source code into a stream of tokens, handling
  * keywords, identifiers, literals, and operators.
@@ -14,7 +14,7 @@
 using namespace std;
 
 /**
- * @brief Converts Nog source code into tokens.
+ * @brief Converts Bishop source code into tokens.
  *
  * Scans through source character by character, recognizing keywords,
  * identifiers, numbers, strings, and operators. Tracks line numbers
@@ -28,7 +28,7 @@ class Lexer {
 public:
     /**
      * @brief Constructs a lexer for the given source code.
-     * @param source The complete Nog source code to tokenize
+     * @param source The complete Bishop source code to tokenize
      */
     explicit Lexer(const string& source);
 

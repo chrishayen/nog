@@ -1,6 +1,6 @@
 /**
  * @file emit_ffi.cpp
- * @brief FFI (Foreign Function Interface) code generation for Nog.
+ * @brief FFI (Foreign Function Interface) code generation for Bishop.
  *
  * Handles generating extern "C" declarations for calling C libraries.
  */

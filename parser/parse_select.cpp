@@ -1,6 +1,6 @@
 /**
  * @file parse_select.cpp
- * @brief Select statement parsing for the Nog parser.
+ * @brief Select statement parsing for the Bishop parser.
  */
 
 #include "parser.hpp"
@@ -10,7 +10,7 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax select
+ * @bishop_syntax select
  * @category Channels
  * @order 4
  * @description Wait on multiple channel operations.

@@ -1,12 +1,12 @@
 /**
  * @file http.hpp
- * @brief Nog HTTP runtime library.
+ * @brief Bishop HTTP runtime library.
  *
- * Provides HTTP server functionality for Nog programs.
+ * Provides HTTP server functionality for Bishop programs.
  * Uses boost::fibers with Asio integration for async I/O.
  * HTTP handlers run as go routines (fibers).
  *
- * Non-template implementations are in http.cpp (libnog_http.a).
+ * Non-template implementations are in http.cpp (libbishop_http.a).
  * This header is precompiled (http.hpp.gch) for faster compilation.
  *
  * Note: This header includes boost because HTTP functionality requires
@@ -15,24 +15,24 @@
 
 #pragma once
 
-// Base standard library headers (includes nog::rt namespace)
-#include <nog/std.hpp>
+// Base standard library headers (includes bishop::rt namespace)
+#include <bishop/std.hpp>
 
 // Boost headers for HTTP server functionality
 #include <boost/fiber/all.hpp>
 #include <boost/asio.hpp>
-#include <nog/fiber_asio/yield.hpp>
+#include <bishop/fiber_asio/yield.hpp>
 
 // Additional headers for HTTP
 #include <tuple>
 
-namespace nog::rt {
+namespace bishop::rt {
 /**
  * Get the global io_context. Only available in HTTP programs.
  * Defined in runtime.cpp.
  */
 boost::asio::io_context& io_context();
-}  // namespace nog::rt
+}  // namespace bishop::rt
 
 // HTTP parser
 #include <llhttp.h>
@@ -141,7 +141,7 @@ void handle_connection(boost::asio::ip::tcp::socket socket, Handler handler) {
  */
 template<typename Handler>
 void serve(int port, Handler handler) {
-    boost::asio::ip::tcp::acceptor acceptor(nog::rt::io_context());
+    boost::asio::ip::tcp::acceptor acceptor(bishop::rt::io_context());
 
     try {
         acceptor.open(boost::asio::ip::tcp::v4());
@@ -157,7 +157,7 @@ void serve(int port, Handler handler) {
 
     while (true) {
         boost::system::error_code ec;
-        boost::asio::ip::tcp::socket socket(nog::rt::io_context());
+        boost::asio::ip::tcp::socket socket(bishop::rt::io_context());
 
         // Yield fiber during accept
         acceptor.async_accept(socket, boost::fibers::asio::yield[ec]);

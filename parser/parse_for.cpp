@@ -1,6 +1,6 @@
 /**
  * @file parse_for_loop.cpp
- * @brief For loop parsing for the Nog parser.
+ * @brief For loop parsing for the Bishop parser.
  */
 
 #include "parser.hpp"
@@ -10,7 +10,7 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax for
+ * @bishop_syntax for
  * @category Control Flow
  * @order 3
  * @description Iterate over ranges or collections.

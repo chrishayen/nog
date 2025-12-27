@@ -1,6 +1,6 @@
 /**
  * @file check_expression.cpp
- * @brief Expression type inference dispatch for the Nog type checker.
+ * @brief Expression type inference dispatch for the Bishop type checker.
  *
  * Dispatches to specialized check functions based on expression type.
  */

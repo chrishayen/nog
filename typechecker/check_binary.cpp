@@ -1,6 +1,6 @@
 /**
  * @file check_binary.cpp
- * @brief Binary expression type inference for the Nog type checker.
+ * @brief Binary expression type inference for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

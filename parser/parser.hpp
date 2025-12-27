@@ -1,6 +1,6 @@
 /**
  * @file parser.hpp
- * @brief Recursive descent parser for the Nog language.
+ * @brief Recursive descent parser for the Bishop language.
  *
  * Transforms a token stream into an Abstract Syntax Tree (AST). Uses
  * standalone functions in the parser namespace with explicit state passing.

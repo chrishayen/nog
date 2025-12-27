@@ -1,6 +1,6 @@
 /**
  * @file parse_primary.cpp
- * @brief Primary expression parsing for the Nog parser.
+ * @brief Primary expression parsing for the Bishop parser.
  */
 
 #include "parser.hpp"
@@ -11,7 +11,7 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax Channel Creation
+ * @bishop_syntax Channel Creation
  * @category Channels
  * @order 1
  * @description Create a typed channel for communication between goroutines.

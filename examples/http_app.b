@@ -1,15 +1,15 @@
 // HTTP Server with App-based Routing
-// Run with: nog run examples/http_app.n
+// Run with: bishop run examples/http_app.b
 // Then open http://localhost:8080 in your browser
 
 import http;
 
 fn home(http.Request req) -> http.Response {
-    return http.text("Hello from Nog HTTP Server!");
+    return http.text("Hello from Bishop HTTP Server!");
 }
 
 fn about(http.Request req) -> http.Response {
-    return http.text("Nog is a modern programming language");
+    return http.text("Bishop is a modern programming language");
 }
 
 fn api_hello(http.Request req) -> http.Response {

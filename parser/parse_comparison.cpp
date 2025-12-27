@@ -1,6 +1,6 @@
 /**
  * @file parse_comparison.cpp
- * @brief Comparison expression parsing for the Nog parser.
+ * @brief Comparison expression parsing for the Bishop parser.
  */
 
 #include "parser.hpp"

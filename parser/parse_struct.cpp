@@ -1,6 +1,6 @@
 /**
  * @file parse_struct.cpp
- * @brief Struct parsing for the Nog parser.
+ * @brief Struct parsing for the Bishop parser.
  *
  * Handles struct definitions and struct literal expressions.
  */
@@ -23,7 +23,7 @@ bool is_struct_type(const ParserState& state, const string& name) {
 }
 
 /**
- * @nog_syntax Struct Definition
+ * @bishop_syntax Struct Definition
  * @category Structs
  * @order 1
  * @description Define a custom data structure.
@@ -74,7 +74,7 @@ unique_ptr<StructDef> parse_struct_def(ParserState& state, const string& name, V
 }
 
 /**
- * @nog_syntax Struct Instantiation
+ * @bishop_syntax Struct Instantiation
  * @category Structs
  * @order 2
  * @description Create an instance of a struct.

@@ -1,6 +1,6 @@
 /**
  * @file codegen.hpp
- * @brief C++ code generator for the Nog language.
+ * @brief C++ code generator for the Bishop language.
  *
  * Transforms a type-checked AST into C++ source code using
  * standalone functions in the codegen namespace with explicit state passing.

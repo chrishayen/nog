@@ -228,7 +228,7 @@ void parse_doc_block(const std::string& block, Documentation& docs) {
             name = cleaned.substr(12);
             in_example = false;
             in_description = false;
-        } else if (cleaned.starts_with("@nog_syntax ")) {
+        } else if (cleaned.starts_with("@bishop_syntax ")) {
             doc_type = "syntax";
             name = cleaned.substr(12);
             in_example = false;
@@ -409,7 +409,7 @@ Documentation scan_directory(const fs::path& dir) {
  */
 std::string generate_syntax_markdown(const Documentation& docs) {
     std::stringstream ss;
-    ss << "# Nog Language Reference\n\n";
+    ss << "# Bishop Language Reference\n\n";
 
     // Group by category
     std::map<std::string, std::vector<const SyntaxDoc*>> by_category;

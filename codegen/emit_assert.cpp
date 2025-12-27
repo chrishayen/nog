@@ -1,6 +1,6 @@
 /**
  * @file emit_assert.cpp
- * @brief Assert statement emission for the Nog code generator.
+ * @brief Assert statement emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

@@ -1,8 +1,8 @@
 /**
  * @file ast.hpp
- * @brief Abstract Syntax Tree node definitions for Nog.
+ * @brief Abstract Syntax Tree node definitions for Bishop.
  *
- * Defines all AST node types used to represent parsed Nog programs. The hierarchy:
+ * Defines all AST node types used to represent parsed Bishop programs. The hierarchy:
  * - ASTNode: Base class with line number tracking
  * - Literals: StringLiteral, NumberLiteral, FloatLiteral, BoolLiteral, NoneLiteral
  * - Expressions: VariableRef, BinaryExpr, IsNone, FunctionCall, MethodCall, FieldAccess, StructLiteral

@@ -1,6 +1,6 @@
 /**
  * @file check_channel.cpp
- * @brief Channel type inference for the Nog type checker.
+ * @brief Channel type inference for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

@@ -1,6 +1,6 @@
 /**
  * @file parse_error.cpp
- * @brief Error type parsing for the Nog parser.
+ * @brief Error type parsing for the Bishop parser.
  *
  * Handles error definitions: MyError :: err; and MyError :: err { fields }
  */
@@ -12,7 +12,7 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax Error Definition
+ * @bishop_syntax Error Definition
  * @category Error Handling
  * @order 1
  * @description Define a custom error type.

@@ -1,6 +1,6 @@
 /**
  * @file emit_statement.cpp
- * @brief Statement dispatch for the Nog code generator.
+ * @brief Statement dispatch for the Bishop code generator.
  *
  * Main entry point for generating C++ code from statement AST nodes.
  * Individual statement types are implemented in separate files.
@@ -35,7 +35,7 @@ string generate_statement(CodeGenState& state, const ASTNode& node) {
         }
 
         if (call->name == "sleep" && call->args.size() == 1) {
-            return "nog::rt::sleep(" + emit(state, *call->args[0]) + ");";
+            return "bishop::rt::sleep(" + emit(state, *call->args[0]) + ");";
         }
 
         // Check if this is an extern function call

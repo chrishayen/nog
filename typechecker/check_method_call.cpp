@@ -1,6 +1,6 @@
 /**
  * @file check_method_call.cpp
- * @brief Method call type inference for the Nog type checker.
+ * @brief Method call type inference for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

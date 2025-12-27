@@ -1,17 +1,17 @@
 /**
  * @file token.hpp
- * @brief Token definitions for the Nog lexer.
+ * @brief Token definitions for the Bishop lexer.
  *
- * Defines the TokenType enum representing all lexical tokens in the Nog language,
+ * Defines the TokenType enum representing all lexical tokens in the Bishop language,
  * and the Token struct that pairs a token type with its string value and source location.
  */
 
 // =============================================================================
-// Nog Syntax Documentation: Types
+// Bishop Syntax Documentation: Types
 // =============================================================================
 
 /**
- * @nog_syntax int
+ * @bishop_syntax int
  * @category Types
  * @order 1
  * @description Integer type for whole numbers.
@@ -20,7 +20,7 @@
  */
 
 /**
- * @nog_syntax str
+ * @bishop_syntax str
  * @category Types
  * @order 2
  * @description String type for text.
@@ -29,7 +29,7 @@
  */
 
 /**
- * @nog_syntax bool
+ * @bishop_syntax bool
  * @category Types
  * @order 3
  * @description Boolean type with values true or false.
@@ -38,7 +38,7 @@
  */
 
 /**
- * @nog_syntax char
+ * @bishop_syntax char
  * @category Types
  * @order 4
  * @description Single character type.
@@ -47,7 +47,7 @@
  */
 
 /**
- * @nog_syntax f32
+ * @bishop_syntax f32
  * @category Types
  * @order 5
  * @description 32-bit floating point number.
@@ -56,7 +56,7 @@
  */
 
 /**
- * @nog_syntax f64
+ * @bishop_syntax f64
  * @category Types
  * @order 6
  * @description 64-bit floating point number.
@@ -65,7 +65,7 @@
  */
 
 /**
- * @nog_syntax u32
+ * @bishop_syntax u32
  * @category Types
  * @order 7
  * @description Unsigned 32-bit integer.
@@ -74,7 +74,7 @@
  */
 
 /**
- * @nog_syntax u64
+ * @bishop_syntax u64
  * @category Types
  * @order 8
  * @description Unsigned 64-bit integer.
@@ -83,7 +83,7 @@
  */
 
 /**
- * @nog_syntax Optional Types
+ * @bishop_syntax Optional Types
  * @category Types
  * @order 9
  * @description Optional type that can hold a value or none.
@@ -98,11 +98,11 @@
  */
 
 // =============================================================================
-// Nog Syntax Documentation: Operators
+// Bishop Syntax Documentation: Operators
 // =============================================================================
 
 /**
- * @nog_syntax Arithmetic Operators
+ * @bishop_syntax Arithmetic Operators
  * @category Operators
  * @order 1
  * @description Mathematical operations.
@@ -117,7 +117,7 @@
  */
 
 /**
- * @nog_syntax Comparison Operators
+ * @bishop_syntax Comparison Operators
  * @category Operators
  * @order 2
  * @description Compare values.
@@ -130,7 +130,7 @@
  */
 
 /**
- * @nog_syntax String Concatenation
+ * @bishop_syntax String Concatenation
  * @category Operators
  * @order 3
  * @description Join strings with the + operator.
@@ -144,7 +144,7 @@
 using namespace std;
 
 /**
- * @brief All possible token types in the Nog language.
+ * @brief All possible token types in the Bishop language.
  *
  * Organized into categories: keywords, primitive types, literals,
  * punctuation/operators, and comparison operators.

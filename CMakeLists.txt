@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(nog VERSION 0.1.0 LANGUAGES CXX)
+project(bishop VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,8 +23,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(llhttp)
 
-# Nog compiler library
-add_library(nog_lib
+# Bishop compiler library
+add_library(bishop_lib
     lexer/lexer.cpp
     parser/parser.cpp
     parser/parse_expression.cpp
@@ -100,52 +100,52 @@ add_library(nog_lib
     stdlib/http.cpp
     stdlib/fs.cpp
 )
-target_link_libraries(nog_lib fmt::fmt tomlplusplus::tomlplusplus)
-target_include_directories(nog_lib PUBLIC ${llhttp_SOURCE_DIR}/include)
+target_link_libraries(bishop_lib fmt::fmt tomlplusplus::tomlplusplus)
+target_include_directories(bishop_lib PUBLIC ${llhttp_SOURCE_DIR}/include)
 
-# Nog compiler executable
-add_executable(nog main.cpp)
-target_link_libraries(nog nog_lib)
+# Bishop compiler executable
+add_executable(bishop main.cpp)
+target_link_libraries(bishop bishop_lib)
 
 # Copy runtime headers and libraries to build directory for development
-add_custom_target(nog_runtime_headers ALL
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog/fiber_asio
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/detail
+add_custom_target(bishop_runtime_headers ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/bishop
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/bishop/fiber_asio
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/include/bishop/fiber_asio/detail
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/lib
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/std/std.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/std.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/std.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/std/error.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/error.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/error.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/std/channel.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/channel.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/channel.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/http/http.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/http.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/http.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/fs/fs.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/fs.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/fs.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/round_robin.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/round_robin.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/fiber_asio/round_robin.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/yield.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/yield.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/fiber_asio/yield.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_SOURCE_DIR}/runtime/fiber_asio/detail/yield.hpp
-        ${CMAKE_BINARY_DIR}/include/nog/fiber_asio/detail/yield.hpp
+        ${CMAKE_BINARY_DIR}/include/bishop/fiber_asio/detail/yield.hpp
     COMMAND ${CMAKE_COMMAND} -E copy
         ${llhttp_SOURCE_DIR}/include/llhttp.h
         ${CMAKE_BINARY_DIR}/include/llhttp.h
     COMMENT "Copying runtime headers"
 )
-add_dependencies(nog_runtime_headers llhttp_static)
+add_dependencies(bishop_runtime_headers llhttp_static)
 
 # Copy llhttp library after it's built
-add_custom_command(TARGET nog_runtime_headers POST_BUILD
+add_custom_command(TARGET bishop_runtime_headers POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         $<TARGET_FILE:llhttp_static>
         ${CMAKE_BINARY_DIR}/lib/
@@ -153,80 +153,80 @@ add_custom_command(TARGET nog_runtime_headers POST_BUILD
 )
 
 # Standard runtime library (Asio separate compilation for faster builds)
-add_library(nog_std_runtime STATIC
+add_library(bishop_std_runtime STATIC
     runtime/asio_impl.cpp
     runtime/std/runtime.cpp
 )
-target_compile_features(nog_std_runtime PRIVATE cxx_std_23)
-target_compile_definitions(nog_std_runtime PRIVATE BOOST_ASIO_SEPARATE_COMPILATION)
-target_include_directories(nog_std_runtime PRIVATE
+target_compile_features(bishop_std_runtime PRIVATE cxx_std_23)
+target_compile_definitions(bishop_std_runtime PRIVATE BOOST_ASIO_SEPARATE_COMPILATION)
+target_include_directories(bishop_std_runtime PRIVATE
     ${Boost_INCLUDE_DIRS}
     ${CMAKE_BINARY_DIR}/include
 )
-target_link_libraries(nog_std_runtime Boost::context Boost::fiber)
-add_dependencies(nog_std_runtime nog_runtime_headers)
+target_link_libraries(bishop_std_runtime Boost::context Boost::fiber)
+add_dependencies(bishop_std_runtime bishop_runtime_headers)
 
-# Copy nog_std library to lib/ after build
-add_custom_command(TARGET nog_std_runtime POST_BUILD
+# Copy bishop_std library to lib/ after build
+add_custom_command(TARGET bishop_std_runtime POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:nog_std_runtime>
+        $<TARGET_FILE:bishop_std_runtime>
         ${CMAKE_BINARY_DIR}/lib/
-    COMMENT "Copying nog_std runtime library"
+    COMMENT "Copying bishop_std runtime library"
 )
 
 # HTTP runtime library (compiled once, linked by user programs)
-add_library(nog_http_runtime STATIC
+add_library(bishop_http_runtime STATIC
     runtime/http/http.cpp
 )
-target_compile_features(nog_http_runtime PRIVATE cxx_std_23)
-target_compile_definitions(nog_http_runtime PRIVATE BOOST_ASIO_SEPARATE_COMPILATION)
-target_include_directories(nog_http_runtime PRIVATE
+target_compile_features(bishop_http_runtime PRIVATE cxx_std_23)
+target_compile_definitions(bishop_http_runtime PRIVATE BOOST_ASIO_SEPARATE_COMPILATION)
+target_include_directories(bishop_http_runtime PRIVATE
     ${Boost_INCLUDE_DIRS}
     ${CMAKE_BINARY_DIR}/include
     ${llhttp_SOURCE_DIR}/include
 )
-target_link_libraries(nog_http_runtime nog_std_runtime llhttp_static Boost::context Boost::fiber)
-add_dependencies(nog_http_runtime nog_runtime_headers)
+target_link_libraries(bishop_http_runtime bishop_std_runtime llhttp_static Boost::context Boost::fiber)
+add_dependencies(bishop_http_runtime bishop_runtime_headers)
 
-# Copy nog_http library to lib/ after build
-add_custom_command(TARGET nog_http_runtime POST_BUILD
+# Copy bishop_http library to lib/ after build
+add_custom_command(TARGET bishop_http_runtime POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:nog_http_runtime>
+        $<TARGET_FILE:bishop_http_runtime>
         ${CMAKE_BINARY_DIR}/lib/
-    COMMENT "Copying nog_http runtime library"
+    COMMENT "Copying bishop_http runtime library"
 )
 
 # Precompile std.hpp for faster compilation of non-http programs
 # GCC looks for .gch files in the same directory as the .hpp file
 add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch
+    OUTPUT ${CMAKE_BINARY_DIR}/include/bishop/std.hpp.gch
     COMMAND ${CMAKE_CXX_COMPILER} -std=c++23
             -I${Boost_INCLUDE_DIRS}
             -I${CMAKE_BINARY_DIR}/include
             -x c++-header
-            ${CMAKE_BINARY_DIR}/include/nog/std.hpp
-            -o ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch
-    DEPENDS nog_runtime_headers
+            ${CMAKE_BINARY_DIR}/include/bishop/std.hpp
+            -o ${CMAKE_BINARY_DIR}/include/bishop/std.hpp.gch
+    DEPENDS bishop_runtime_headers
     COMMENT "Precompiling std.hpp"
 )
 
 # Precompile http.hpp for faster compilation of http programs
 # http.hpp includes std.hpp, so both are in this PCH
 add_custom_command(
-    OUTPUT ${CMAKE_BINARY_DIR}/include/nog/http.hpp.gch
+    OUTPUT ${CMAKE_BINARY_DIR}/include/bishop/http.hpp.gch
     COMMAND ${CMAKE_CXX_COMPILER} -std=c++23
             -I${Boost_INCLUDE_DIRS}
             -I${CMAKE_BINARY_DIR}/include
             -x c++-header
-            ${CMAKE_BINARY_DIR}/include/nog/http.hpp
-            -o ${CMAKE_BINARY_DIR}/include/nog/http.hpp.gch
-    DEPENDS nog_runtime_headers ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch
+            ${CMAKE_BINARY_DIR}/include/bishop/http.hpp
+            -o ${CMAKE_BINARY_DIR}/include/bishop/http.hpp.gch
+    DEPENDS bishop_runtime_headers ${CMAKE_BINARY_DIR}/include/bishop/std.hpp.gch
     COMMENT "Precompiling http.hpp"
 )
 
 add_custom_target(precompile_headers ALL
-    DEPENDS ${CMAKE_BINARY_DIR}/include/nog/std.hpp.gch
-            ${CMAKE_BINARY_DIR}/include/nog/http.hpp.gch
+    DEPENDS ${CMAKE_BINARY_DIR}/include/bishop/std.hpp.gch
+            ${CMAKE_BINARY_DIR}/include/bishop/http.hpp.gch
 )
 
 # Documentation generator tool

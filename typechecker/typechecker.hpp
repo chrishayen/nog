@@ -1,6 +1,6 @@
 /**
  * @file typechecker.hpp
- * @brief Static type checker for the Nog language.
+ * @brief Static type checker for the Bishop language.
  *
  * Performs semantic analysis on the AST before code generation using
  * standalone functions in the typechecker namespace with explicit state passing.
@@ -84,7 +84,7 @@ void register_module(TypeCheckerState& state, const std::string& alias, const Mo
 // Local scope helpers
 // -----------------------------------------------------------------------------
 //
-// The typechecker models Nog's `{ ... }` blocks as lexical scopes, matching the
+// The typechecker models Bishop's `{ ... }` blocks as lexical scopes, matching the
 // generated C++ code. These helpers centralize scope operations so individual
 // check_* functions don't need to manually manage maps.
 void push_scope(TypeCheckerState& state);

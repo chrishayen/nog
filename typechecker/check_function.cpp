@@ -1,6 +1,6 @@
 /**
  * @file check_function.cpp
- * @brief Function and method type checking for the Nog type checker.
+ * @brief Function and method type checking for the Bishop type checker.
  *
  * Handles validating function and method definitions, including
  * parameter types, return types, and body statements.

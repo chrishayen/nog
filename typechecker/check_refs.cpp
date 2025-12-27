@@ -1,6 +1,6 @@
 /**
  * @file check_refs.cpp
- * @brief Reference type inference for the Nog type checker.
+ * @brief Reference type inference for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

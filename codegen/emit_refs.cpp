@@ -1,6 +1,6 @@
 /**
  * @file emit_refs.cpp
- * @brief Variable and function reference emission for the Nog code generator.
+ * @brief Variable and function reference emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

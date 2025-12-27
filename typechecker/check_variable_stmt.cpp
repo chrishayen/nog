@@ -1,6 +1,6 @@
 /**
  * @file check_variable_stmt.cpp
- * @brief Variable declaration and assignment checking for the Nog type checker.
+ * @brief Variable declaration and assignment checking for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

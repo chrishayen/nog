@@ -1,6 +1,6 @@
 /**
  * @file emit_with.cpp
- * @brief With statement emission for the Nog code generator.
+ * @brief With statement emission for the Bishop code generator.
  *
  * Generates C++ code for with statements that provide automatic
  * resource cleanup via RAII.

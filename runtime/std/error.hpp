@@ -1,6 +1,6 @@
 /**
  * @file error.hpp
- * @brief Error handling primitives for Nog.
+ * @brief Error handling primitives for Bishop.
  *
  * Provides the base Error type and Result<T> wrapper for fallible functions.
  * All error types inherit from Error and can be checked with dynamic_cast.
@@ -13,7 +13,7 @@
 #include <variant>
 #include <optional>
 
-namespace nog::rt {
+namespace bishop::rt {
 
 /**
  * Base error type that all errors inherit from.
@@ -191,4 +191,4 @@ Result<T> make_error(std::shared_ptr<E> err) {
     return Result<T>(std::static_pointer_cast<Error>(err));
 }
 
-}  // namespace nog::rt
+}  // namespace bishop::rt

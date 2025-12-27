@@ -1,6 +1,6 @@
 /**
  * @file emit_function_call.cpp
- * @brief Function call emission for the Nog code generator.
+ * @brief Function call emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

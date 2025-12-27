@@ -1,6 +1,6 @@
 /**
  * @file check_field.cpp
- * @brief Field access type inference for the Nog type checker.
+ * @brief Field access type inference for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

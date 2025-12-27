@@ -1,12 +1,12 @@
 /**
  * @file http.cpp
- * @brief Nog HTTP runtime library implementation.
+ * @brief Bishop HTTP runtime library implementation.
  *
  * Contains non-template function implementations for the HTTP module.
- * Compiled into libnog_http.a for linking with user programs.
+ * Compiled into libbishop_http.a for linking with user programs.
  */
 
-#include <nog/http.hpp>
+#include <bishop/http.hpp>
 
 namespace http {
 
@@ -139,7 +139,7 @@ Response App::route(const Request& req) {
 }
 
 void App::listen(int port) {
-    boost::asio::ip::tcp::acceptor acceptor(nog::rt::io_context());
+    boost::asio::ip::tcp::acceptor acceptor(bishop::rt::io_context());
 
     try {
         acceptor.open(boost::asio::ip::tcp::v4());
@@ -155,7 +155,7 @@ void App::listen(int port) {
 
     while (true) {
         boost::system::error_code ec;
-        boost::asio::ip::tcp::socket socket(nog::rt::io_context());
+        boost::asio::ip::tcp::socket socket(bishop::rt::io_context());
 
         // Yield fiber during accept
         acceptor.async_accept(socket, boost::fibers::asio::yield[ec]);

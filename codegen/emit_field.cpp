@@ -1,6 +1,6 @@
 /**
  * @file emit_field.cpp
- * @brief Field access and assignment emission for the Nog code generator.
+ * @brief Field access and assignment emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

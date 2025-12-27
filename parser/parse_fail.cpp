@@ -1,6 +1,6 @@
 /**
  * @file parse_fail.cpp
- * @brief Fail statement parsing for the Nog parser.
+ * @brief Fail statement parsing for the Bishop parser.
  *
  * Handles fail statements for error propagation.
  */
@@ -34,7 +34,7 @@ unique_ptr<FailStmt> parse_fail_expr(ParserState& state) {
 }
 
 /**
- * @nog_syntax Fail Statement
+ * @bishop_syntax Fail Statement
  * @category Error Handling
  * @order 2
  * @description Return an error from a fallible function.

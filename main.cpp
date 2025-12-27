@@ -1,11 +1,11 @@
 /**
  * @file main.cpp
- * @brief Entry point for the Nog compiler.
+ * @brief Entry point for the Bishop compiler.
  *
- * Provides the main() function and CLI handling for the Nog compiler.
+ * Provides the main() function and CLI handling for the Bishop compiler.
  * Supports two modes:
- *   - nog <source.n>     : Transpile to C++ and output to stdout
- *   - nog test <path>    : Run tests on .n files, compiling and executing them
+ *   - bishop <source.b>     : Transpile to C++ and output to stdout
+ *   - bishop test <path>    : Run tests on .b files, compiling and executing them
  */
 
 #include <iostream>
@@ -29,7 +29,7 @@ using namespace std;
 namespace fs = filesystem;
 
 /**
- * Result of transpiling a Nog source file.
+ * Result of transpiling a Bishop source file.
  * Contains both the generated C++ code and metadata about module usage.
  */
 struct TranspileResult {
@@ -40,7 +40,7 @@ struct TranspileResult {
 };
 
 /**
- * Gets the directory where the nog executable is located.
+ * Gets the directory where the bishop executable is located.
  * Used to find runtime libraries relative to the compiler.
  */
 fs::path get_executable_dir() {
@@ -48,11 +48,11 @@ fs::path get_executable_dir() {
 }
 
 /**
- * Gets the library and include paths based on where nog is installed.
- * Development: build/nog -> build/lib, build/include
- * Installed: ~/.local/bin/nog -> ~/.local/lib/nog, ~/.local/include
+ * Gets the library and include paths based on where bishop is installed.
+ * Development: build/bishop -> build/lib, build/include
+ * Installed: ~/.local/bin/bishop -> ~/.local/lib/bishop, ~/.local/include
  *
- * Include path points to parent so #include <nog/http.hpp> works.
+ * Include path points to parent so #include <bishop/http.hpp> works.
  */
 pair<fs::path, fs::path> get_runtime_paths() {
     fs::path exe_dir = get_executable_dir();
@@ -65,11 +65,11 @@ pair<fs::path, fs::path> get_runtime_paths() {
         return {build_lib, build_include};
     }
 
-    // Otherwise assume installed layout: bin/nog -> lib/nog, include
-    // Include path is ~/.local/include (so nog/http.hpp is found)
-    // Lib path is ~/.local/lib/nog (where our libs are)
+    // Otherwise assume installed layout: bin/bishop -> lib/bishop, include
+    // Include path is ~/.local/include (so bishop/http.hpp is found)
+    // Lib path is ~/.local/lib/bishop (where our libs are)
     fs::path install_base = exe_dir.parent_path();
-    return {install_base / "lib" / "nog", install_base / "include"};
+    return {install_base / "lib" / "bishop", install_base / "include"};
 }
 
 /**
@@ -99,12 +99,12 @@ string build_link_cmd(const TranspileResult& result, const string& exe_output,
     auto [lib_path, include_path] = get_runtime_paths();
     string cmd = "g++ -pipe -o " + exe_output + " " + obj_input;
 
-    // Always add library path and link nog_std_runtime (contains fiber runtime)
+    // Always add library path and link bishop_std_runtime (contains fiber runtime)
     cmd += " -L" + lib_path.string();
-    cmd += " -lnog_std_runtime";
+    cmd += " -lbishop_std_runtime";
 
     if (result.uses_http) {
-        cmd += " -lnog_http_runtime";
+        cmd += " -lbishop_http_runtime";
         cmd += " -lllhttp";
     }
 
@@ -144,7 +144,7 @@ string read_file(const string& path) {
 }
 
 /**
- * Transpiles Nog source to C++ code.
+ * Transpiles Bishop source to C++ code.
  * Runs lexer -> parser -> module loading -> type checker -> code generator pipeline.
  * Returns result with empty cpp_code and prints errors if type checking or module loading fails.
  */
@@ -202,7 +202,7 @@ TranspileResult transpile(const string& source, const string& filename, bool tes
             imports[imp->alias] = mod;
         }
     } else if (!ast->imports.empty()) {
-        cerr << filename << ": error: imports require a nog.toml file (run 'nog init')" << endl;
+        cerr << filename << ": error: imports require a bishop.toml file (run 'bishop init')" << endl;
         return result;
     }
 
@@ -277,9 +277,9 @@ TestResult run_positive_test(const fs::path& test_file, int test_id) {
         return result;
     }
 
-    string tmp_cpp = "/tmp/nog_test_" + to_string(test_id) + ".cpp";
-    string tmp_obj = "/tmp/nog_test_" + to_string(test_id) + ".o";
-    string tmp_bin = "/tmp/nog_test_" + to_string(test_id);
+    string tmp_cpp = "/tmp/bishop_test_" + to_string(test_id) + ".cpp";
+    string tmp_obj = "/tmp/bishop_test_" + to_string(test_id) + ".o";
+    string tmp_bin = "/tmp/bishop_test_" + to_string(test_id);
 
     ofstream out(tmp_cpp);
     out << transpile_result.cpp_code;
@@ -365,7 +365,7 @@ TestResult run_negative_test(const fs::path& test_file) {
 }
 
 /**
- * Runs tests on all .n files in a directory (or a single file).
+ * Runs tests on all .b files in a directory (or a single file).
  * Each test file is transpiled, compiled with g++, and executed.
  * Test functions (test_*) use assert_eq for assertions.
  * Files in tests/errors/ are expected to fail with specific error messages.
@@ -378,7 +378,7 @@ int run_tests(const string& path) {
 
     if (fs::is_directory(path)) {
         for (const auto& entry : fs::recursive_directory_iterator(path)) {
-            if (entry.path().extension() == ".n") {
+            if (entry.path().extension() == ".b") {
                 if (is_error_test(entry.path())) {
                     error_test_files.push_back(entry.path());
                 } else {
@@ -398,7 +398,7 @@ int run_tests(const string& path) {
     }
 
     if (test_files.empty() && error_test_files.empty()) {
-        cerr << "No .n files found" << endl;
+        cerr << "No .b files found" << endl;
         return 1;
     }
 
@@ -451,25 +451,25 @@ int run_tests(const string& path) {
 }
 
 /**
- * Initializes a new Nog project by creating a nog.toml file in the current directory.
+ * Initializes a new Bishop project by creating a bishop.toml file in the current directory.
  */
 int init_project(const string& project_name) {
     if (project_name.empty()) {
-        cerr << "Usage: nog init <project_name>" << endl;
+        cerr << "Usage: bishop init <project_name>" << endl;
         return 1;
     }
 
-    fs::path init_file = fs::current_path() / "nog.toml";
+    fs::path init_file = fs::current_path() / "bishop.toml";
 
     if (fs::exists(init_file)) {
-        cerr << "Error: nog.toml already exists" << endl;
+        cerr << "Error: bishop.toml already exists" << endl;
         return 1;
     }
 
     ofstream out(init_file);
 
     if (!out) {
-        cerr << "Error: Could not create nog.toml" << endl;
+        cerr << "Error: Could not create bishop.toml" << endl;
         return 1;
     }
 
@@ -481,29 +481,29 @@ int init_project(const string& project_name) {
 }
 
 /**
- * Compiles and runs a nog source file or project directory.
+ * Compiles and runs a bishop source file or project directory.
  */
 int run_file(const string& path) {
     string filename;
 
     if (fs::is_directory(path)) {
         fs::path dir_path = fs::absolute(path);
-        fs::path toml_path = dir_path / "nog.toml";
+        fs::path toml_path = dir_path / "bishop.toml";
 
         if (!fs::exists(toml_path)) {
-            cerr << "Error: No nog.toml found in " << path << endl;
+            cerr << "Error: No bishop.toml found in " << path << endl;
             return 1;
         }
 
         auto config = parse_init_file(toml_path);
 
         if (!config) {
-            cerr << "Error: Could not parse nog.toml" << endl;
+            cerr << "Error: Could not parse bishop.toml" << endl;
             return 1;
         }
 
         if (!config->entry) {
-            cerr << "Error: No entry field in nog.toml" << endl;
+            cerr << "Error: No entry field in bishop.toml" << endl;
             return 1;
         }
 
@@ -532,9 +532,9 @@ int run_file(const string& path) {
     }
 
     // Write to temp file
-    string cpp_file = "/tmp/nog_run.cpp";
-    string obj_file = "/tmp/nog_run.o";
-    string exe_file = "/tmp/nog_run";
+    string cpp_file = "/tmp/bishop_run.cpp";
+    string obj_file = "/tmp/bishop_run.o";
+    string exe_file = "/tmp/bishop_run";
 
     ofstream out(cpp_file);
 
@@ -567,8 +567,8 @@ int run_file(const string& path) {
 }
 
 /**
- * Builds a nog source file to an executable.
- * If a directory is provided, looks for nog.toml with entry field.
+ * Builds a bishop source file to an executable.
+ * If a directory is provided, looks for bishop.toml with entry field.
  */
 int build_file(const string& path) {
     string filename;
@@ -576,22 +576,22 @@ int build_file(const string& path) {
 
     if (fs::is_directory(path)) {
         fs::path dir_path = fs::absolute(path);
-        fs::path toml_path = dir_path / "nog.toml";
+        fs::path toml_path = dir_path / "bishop.toml";
 
         if (!fs::exists(toml_path)) {
-            cerr << "Error: No nog.toml found in " << path << endl;
+            cerr << "Error: No bishop.toml found in " << path << endl;
             return 1;
         }
 
         auto config = parse_init_file(toml_path);
 
         if (!config) {
-            cerr << "Error: Could not parse nog.toml" << endl;
+            cerr << "Error: Could not parse bishop.toml" << endl;
             return 1;
         }
 
         if (!config->entry) {
-            cerr << "Error: No entry field in nog.toml" << endl;
+            cerr << "Error: No entry field in bishop.toml" << endl;
             return 1;
         }
 
@@ -621,8 +621,8 @@ int build_file(const string& path) {
         return 1;
     }
 
-    string cpp_file = "/tmp/nog_build.cpp";
-    string obj_file = "/tmp/nog_build.o";
+    string cpp_file = "/tmp/bishop_build.cpp";
+    string obj_file = "/tmp/bishop_build.o";
     ofstream out(cpp_file);
 
     if (!out) {
@@ -654,17 +654,17 @@ int build_file(const string& path) {
 
 /**
  * Main entry point. Usage:
- *   nog <file|dir>       - Build executable from source file or project directory
- *   nog run <file|dir>   - Build and run
- *   nog test <path>      - Run tests
- *   nog init <name>      - Initialize project
+ *   bishop <file|dir>       - Build executable from source file or project directory
+ *   bishop run <file|dir>   - Build and run
+ *   bishop test <path>      - Run tests
+ *   bishop init <name>      - Initialize project
  */
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        cerr << "Usage: nog <file|dir>" << endl;
-        cerr << "       nog run <file|dir>" << endl;
-        cerr << "       nog test <path>" << endl;
-        cerr << "       nog init <name>" << endl;
+        cerr << "Usage: bishop <file|dir>" << endl;
+        cerr << "       bishop run <file|dir>" << endl;
+        cerr << "       bishop test <path>" << endl;
+        cerr << "       bishop init <name>" << endl;
         return 1;
     }
 
@@ -682,7 +682,7 @@ int main(int argc, char* argv[]) {
 
     if (cmd == "run") {
         if (argc < 3) {
-            cerr << "Usage: nog run <file>" << endl;
+            cerr << "Usage: bishop run <file>" << endl;
             return 1;
         }
 

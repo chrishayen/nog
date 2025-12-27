@@ -1,6 +1,6 @@
 /**
  * @file std.hpp
- * @brief Base standard library header for all Nog programs.
+ * @brief Base standard library header for all Bishop programs.
  *
  * This header is lightweight - no boost includes.
  * Boost-dependent features (Channel) are in separate headers.
@@ -23,9 +23,9 @@
 #include <chrono>
 
 // Error handling primitives
-#include <nog/error.hpp>
+#include <bishop/error.hpp>
 
-namespace nog::rt {
+namespace bishop::rt {
 
 // ============================================================================
 // Runtime Functions (implemented in runtime.cpp)
@@ -145,9 +145,9 @@ T* arena_new(Args&&... args) {
     return new(mem) T(std::forward<Args>(args)...);
 }
 
-}  // namespace nog::rt
+}  // namespace bishop::rt
 
 // Legacy compatibility - inline wrapper for sleep
-namespace nog::rt {
+namespace bishop::rt {
     inline void sleep(int ms) { sleep_ms(ms); }
 }

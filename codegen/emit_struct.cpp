@@ -1,6 +1,6 @@
 /**
  * @file emit_struct.cpp
- * @brief Struct emission for the Nog code generator.
+ * @brief Struct emission for the Bishop code generator.
  *
  * Handles emitting C++ code for struct definitions, struct literals,
  * and field access/assignment.

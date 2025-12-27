@@ -1,6 +1,6 @@
 /**
  * @file emit_or.cpp
- * @brief Or expression emission for the Nog code generator.
+ * @brief Or expression emission for the Bishop code generator.
  *
  * Generates C++ code for or expressions that handle errors.
  * This is complex because or expressions need to generate statements

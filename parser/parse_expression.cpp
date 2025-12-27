@@ -1,6 +1,6 @@
 /**
  * @file parse_expression.cpp
- * @brief Expression parsing entry point for the Nog parser.
+ * @brief Expression parsing entry point for the Bishop parser.
  *
  * Delegates to parse_comparison (lowest precedence).
  * Individual precedence levels are in separate files.

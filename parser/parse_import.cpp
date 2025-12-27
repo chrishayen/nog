@@ -1,6 +1,6 @@
 /**
  * @file parse_import.cpp
- * @brief Import parsing and definition prescanning for the Nog parser.
+ * @brief Import parsing and definition prescanning for the Bishop parser.
  *
  * Handles import statements, prescan for forward references,
  * doc comment collection, and name lookup utilities.
@@ -73,7 +73,7 @@ void prescan_definitions(ParserState& state) {
 }
 
 /**
- * @nog_syntax Doc Comments
+ * @bishop_syntax Doc Comments
  * @category Visibility
  * @order 2
  * @description Document functions, structs, and fields with /// comments.
@@ -99,7 +99,7 @@ string collect_doc_comments(ParserState& state) {
 }
 
 /**
- * @nog_syntax import
+ * @bishop_syntax import
  * @category Imports
  * @order 1
  * @description Import a module to use its types and functions.

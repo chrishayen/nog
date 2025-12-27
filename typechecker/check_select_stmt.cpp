@@ -1,6 +1,6 @@
 /**
  * @file check_select_stmt.cpp
- * @brief Select statement checking for the Nog type checker.
+ * @brief Select statement checking for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

@@ -1,6 +1,6 @@
 /**
  * @file lists.cpp
- * @brief List method type definitions for the Nog type checker.
+ * @brief List method type definitions for the Bishop type checker.
  *
  * Defines type signatures for all built-in List<T> methods.
  * Uses "T" as a placeholder for the element type, which is

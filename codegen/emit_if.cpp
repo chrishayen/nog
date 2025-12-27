@@ -1,6 +1,6 @@
 /**
  * @file emit_if.cpp
- * @brief If statement emission for the Nog code generator.
+ * @brief If statement emission for the Bishop code generator.
  */
 
 #include "codegen.hpp"

@@ -1,6 +1,6 @@
 /**
  * @file emit_type.cpp
- * @brief Type mapping for Nog to C++ conversion.
+ * @brief Type mapping for Bishop to C++ conversion.
  *
  * Maps Nog primitive types to their C++ equivalents.
  */
@@ -12,7 +12,7 @@ using namespace std;
 namespace codegen {
 
 /**
- * Maps a Nog type name to its C++ equivalent.
+ * Maps a Bishop type name to its C++ equivalent.
  * Returns the input unchanged if it's a user-defined type (struct).
  * Handles qualified types (module.Type -> module::Type).
  * Handles function types (fn(int, int) -> int -> std::function<int(int, int)>).
@@ -31,12 +31,12 @@ string map_type(const string& t) {
     if (t == "void") return "void";
     if (t.empty()) return "void";
 
-    // Handle Channel<T> types: Channel<int> -> nog::rt::Channel<int>&
+    // Handle Channel<T> types: Channel<int> -> bishop::rt::Channel<int>&
     if (t.rfind("Channel<", 0) == 0 && t.back() == '>') {
         size_t start = 8;
         size_t end = t.find('>', start);
         string element_type = t.substr(start, end - start);
-        return "nog::rt::Channel<" + map_type(element_type) + ">&";
+        return "bishop::rt::Channel<" + map_type(element_type) + ">&";
     }
 
     // Handle List<T> types: List<int> -> std::vector<int>

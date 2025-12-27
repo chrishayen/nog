@@ -1,6 +1,6 @@
 /**
  * @file check_for_stmt.cpp
- * @brief For statement checking for the Nog type checker.
+ * @brief For statement checking for the Bishop type checker.
  */
 
 #include "typechecker.hpp"

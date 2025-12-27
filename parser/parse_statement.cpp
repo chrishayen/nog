@@ -1,6 +1,6 @@
 /**
  * @file parse_statement.cpp
- * @brief Statement parsing dispatch for the Nog parser.
+ * @brief Statement parsing dispatch for the Bishop parser.
  *
  * Main entry point for parsing statements. Individual statement types
  * are implemented in separate files.
@@ -278,7 +278,7 @@ unique_ptr<FunctionCall> parse_function_call(ParserState& state) {
 }
 
 /**
- * @nog_syntax go spawn
+ * @bishop_syntax go spawn
  * @category Concurrency
  * @order 1
  * @description Spawn a goroutine to run a function call concurrently.
@@ -299,7 +299,7 @@ unique_ptr<GoSpawn> parse_go_spawn(ParserState& state) {
 }
 
 /**
- * @nog_syntax with
+ * @bishop_syntax with
  * @category Resources
  * @order 1
  * @description Resource management block. Calls close() on the resource when exiting.

@@ -1,6 +1,6 @@
 /**
  * @file emit_fail.cpp
- * @brief Fail statement emission for the Nog code generator.
+ * @brief Fail statement emission for the Bishop code generator.
  *
  * Generates C++ code for fail statements that return errors from functions.
  */
@@ -15,17 +15,17 @@ namespace codegen {
 
 /**
  * Generates C++ return statement for a fail expression.
- * For string: return std::make_shared<nog::rt::Error>("message");
+ * For string: return std::make_shared<bishop::rt::Error>("message");
  * For error struct: return std::make_shared<ErrorType>("msg", field1, field2);
  */
 string emit_fail(CodeGenState& state, const FailStmt& stmt) {
     if (!stmt.value) {
-        return "return std::make_shared<nog::rt::Error>(\"error\")";
+        return "return std::make_shared<bishop::rt::Error>(\"error\")";
     }
 
     // Check if it's a string literal
     if (auto* str_lit = dynamic_cast<const StringLiteral*>(stmt.value.get())) {
-        return fmt::format("return std::make_shared<nog::rt::Error>({})",
+        return fmt::format("return std::make_shared<bishop::rt::Error>({})",
                            string_literal(str_lit->value));
     }
 
@@ -61,7 +61,7 @@ string emit_fail(CodeGenState& state, const FailStmt& stmt) {
 
         // Cast to base Error type for Result<T> compatibility
         return fmt::format(
-            "return std::static_pointer_cast<nog::rt::Error>(std::make_shared<{}>({}))",
+            "return std::static_pointer_cast<bishop::rt::Error>(std::make_shared<{}>({}))",
             struct_lit->struct_name,
             fmt::join(args, ", "));
     }

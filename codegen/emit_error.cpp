@@ -1,9 +1,9 @@
 /**
  * @file emit_error.cpp
- * @brief Error type emission for the Nog code generator.
+ * @brief Error type emission for the Bishop code generator.
  *
  * Handles emitting C++ code for error type definitions.
- * Error types inherit from nog::rt::Error and have message/cause built-in.
+ * Error types inherit from bishop::rt::Error and have message/cause built-in.
  */
 
 #include "codegen.hpp"
@@ -15,11 +15,11 @@ using namespace std;
 namespace codegen {
 
 /**
- * Generates a C++ struct that inherits from nog::rt::Error.
+ * Generates a C++ struct that inherits from bishop::rt::Error.
  * All error types have built-in message (string) and cause (shared_ptr<Error>).
  */
 string generate_error(CodeGenState& state, const ErrorDef& def) {
-    string out = fmt::format("struct {} : public nog::rt::Error {{\n", def.name);
+    string out = fmt::format("struct {} : public bishop::rt::Error {{\n", def.name);
 
     // Generate custom fields
     for (const auto& f : def.fields) {
@@ -49,9 +49,9 @@ string generate_error(CodeGenState& state, const ErrorDef& def) {
         inits.push_back(fmt::format("{}({}_)", f.name, f.name));
     }
 
-    params.push_back("std::shared_ptr<nog::rt::Error> cause_ = nullptr");
+    params.push_back("std::shared_ptr<bishop::rt::Error> cause_ = nullptr");
 
-    out += fmt::format("\n\t{}({}) : nog::rt::Error(msg, cause_)", def.name, fmt::join(params, ", "));
+    out += fmt::format("\n\t{}({}) : bishop::rt::Error(msg, cause_)", def.name, fmt::join(params, ", "));
 
     if (!inits.empty()) {
         out += fmt::format(", {}", fmt::join(inits, ", "));

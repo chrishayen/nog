@@ -1,6 +1,6 @@
 /**
  * @file parse_if.cpp
- * @brief If statement parsing for the Nog parser.
+ * @brief If statement parsing for the Bishop parser.
  */
 
 #include "parser.hpp"
@@ -10,7 +10,7 @@ using namespace std;
 namespace parser {
 
 /**
- * @nog_syntax if
+ * @bishop_syntax if
  * @category Control Flow
  * @order 1
  * @description Conditional branching with if and optional else.
